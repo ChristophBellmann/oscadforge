@@ -1,0 +1,10 @@
+export:
+  scad: true
+  stl: true
+  png:
+    enabled: true
+    imgsize: [800, 600]
+    viewall: true
+  output_dir: ./out/solar_bus
+  basename: solar_bus_demo
+  openscad_bin: openscad

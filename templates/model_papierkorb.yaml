@@ -1,0 +1,24 @@
+meta:
+  description: >
+    Papierkorb mit modularen Tiles für Wände und Rand bei 514 × 170 × 605 mm
+    Außenmaß. Leichte Wände, optionaler Honeycomb und Randprofile.
+
+model:
+  name: papierkorb_tiles
+  params:
+    L_mm: 514.0
+    B_mm: 170.0
+    H_mm: 605.0
+    wall_mm: 2.4  # 6 × 0.4 mm nozzle width
+    max_tile_mm: 200.0
+    enable_tiles: true
+    enable_rim: true
+    rim_height_mm: 20.0
+    rim_width_mm: 2.5
+    enable_honeycomb: false
+    honeycomb_pitch_mm: 35.0
+    honeycomb_radius_mm: 8.0
+    honeycomb_margin_mm: 25.0
+    flange_depth_mm: 10.0
+  layout:
+    mode: flat

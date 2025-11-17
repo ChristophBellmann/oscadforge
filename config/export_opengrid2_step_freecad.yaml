@@ -1,0 +1,23 @@
+meta:
+  description: >
+    Export-Preset für OpenGrid v2: nur Layout, SCAD und STEP via FreeCAD,
+    keine STL-Ausgabe.
+
+model:
+  layout:
+    mode: both
+
+export:
+  output_dir: ./out/opengrid2_freecad
+  basename: opengrid2_freecad
+  scad: true
+  stl: false
+  step: true
+  step_backend: freecad_auto
+  freecad_bin: ./tooling/freecadcmd-local.sh
+  freecad_mesh_tolerance: 0.15
+  png:
+    enabled: true
+    viewall: true
+    imgsize: [1024, 768]
+  openscad_bin: ./tooling/OpenSCAD-nightly.AppDir/AppRun

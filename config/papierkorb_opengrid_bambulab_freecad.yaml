@@ -1,0 +1,42 @@
+meta:
+  description: >
+    Papierkorb mit OpenGrid-Wänden für den Bambu Lab: assembled Bin plus
+    Sheets, STEP-Ausleitung über FreeCAD.
+
+model:
+  name: papierkorb_tiles
+  params:
+    L_mm: 514.0
+    B_mm: 170.0
+    H_mm: 605.0
+    wall_mm: 3.6
+    max_tile_mm: 248.0   # 256 mm bed minus small guard band
+    enable_tiles: true
+    enable_rim: true
+    rim_height_mm: 20.0
+    rim_width_mm: 2.5
+    enable_honeycomb: false
+    honeycomb_pitch_mm: 35.0
+    honeycomb_radius_mm: 8.0
+    honeycomb_margin_mm: 25.0
+    flange_depth_mm: 10.0
+    enable_opengrid: true
+    opengrid_cell_mm: 24.0
+    opengrid_bar_mm: 3.2
+    opengrid_margin_mm: 12.0
+  layout:
+    mode: both              # assembled bin + flattened sheets
+    bed_mm: [256.0, 256.0]  # print area
+    spacing_mm: 8.0
+
+export:
+  output_dir: ./out/papierkorb/opengrid_bambulab
+  basename: papierkorb_opengrid_bambulab
+  scad: true
+  stl: true
+  step: false
+  step_backend: freecad_csg
+  freecad_bin: ./tooling/freecadcmd-local.sh
+  freecad_mesh_tolerance: 0.15
+  openscad_bin: ./tooling/OpenSCAD-nightly.AppDir/AppRun
+  png: false

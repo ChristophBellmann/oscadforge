@@ -1,0 +1,16 @@
+model:
+  params:
+    enable_honeycomb: false
+    enable_rim: true
+  layout:
+    mode: assembled
+export:
+  output_dir: "./out/papierkorb/panels"
+  basename: papierkorb_panels
+  scad: true
+  stl: true
+  png:
+    enabled: true
+    imgsize: [1200, 900]
+    viewall: true
+    view: edges

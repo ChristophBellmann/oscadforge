@@ -1,0 +1,22 @@
+meta:
+  description: >
+    Standard-Papierkorb-Export mit aktivem OpenGrid: SCAD/STL plus STEP über
+    FreeCAD-CSG.
+
+model:
+  params:
+    enable_opengrid: true
+  layout:
+    mode: both   # emit assembled + sheet artefacts so STEP gets a full bin too
+
+export:
+  scad: true
+  stl: true
+  step: true
+  step_backend: freecad_csg
+  freecad_bin: ./tooling/freecadcmd-local.sh
+  freecad_mesh_tolerance: 0.15
+  png: false
+  output_dir: ./out/papierkorb_freecad
+  basename: papierkorb_tiles_freecad
+  openscad_bin: openscad

@@ -1,0 +1,17 @@
+meta:
+  description: >
+    OpenGrid v2 Export – nur SCAD-Dateien für assembled Modell und Sheets,
+    ohne STL/STEP/Png.
+
+model:
+  layout:
+    mode: both
+
+export:
+  output_dir: ./out/opengrid2
+  basename: opengrid2
+  scad: true
+  stl: false
+  step: false
+  png: false
+  openscad_bin: ./tooling/OpenSCAD-nightly.AppDir/AppRun

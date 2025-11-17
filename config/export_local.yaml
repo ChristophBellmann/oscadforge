@@ -1,0 +1,7 @@
+export:
+  scad: true
+  stl: false
+  png: false
+  output_dir: ./out/papierkorb
+  basename: papierkorb_tiles
+  openscad_bin: openscad

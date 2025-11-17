@@ -1,0 +1,6 @@
+panels:
+  type: standard_120W
+  count: 2
+  size_mm: [1200, 540, 35]
+  tilt_deg: 0
+  layout: auto_grid

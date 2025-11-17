@@ -1,0 +1,5 @@
+battery:
+  type: LiFePO4_100Ah
+  count: 1
+  size_mm: [330, 170, 220]
+  position: inside

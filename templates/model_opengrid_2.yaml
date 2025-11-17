@@ -1,0 +1,39 @@
+meta:
+  description: >
+    Papierkorb mit OpenGrid-Tiles: maximierte Paneelgrößen innerhalb
+    eines 256 × 256 mm Druckbetts. Wände stehen eine Tile-Dicke vom Boden
+    zurück, um Montagekollisionen zu vermeiden.
+
+model:
+  name: opengrid_2
+  params:
+    bin:
+      length_mm: 514.0
+      width_mm: 170.0
+      height_mm: 605.0
+      wall_thickness_mm: 4.0 # 4mm =  lite, 6.8 mm = full
+      max_tile_mm: 256.0
+      dimension_rounding: nearest
+    board:
+      variant: Lite        # Full, Lite, Heavy
+      tile_size_mm: 28.0
+      chamfers: Corners
+      screw_mounting: None
+      connector_holes: true
+      adhesive_base: false
+    connectors:
+      snap_variant: lite   # lite/full
+      directional_snaps: false
+      include_floor_edges: false
+      generate_connectors: false
+  layout:
+    mode: both
+    bed_mm: [256.0, 256.0]
+    spacing_mm: 6.0
+
+export:
+  output_dir: ./out/opengrid_2
+  basename: opengrid2_papierkorb
+  scad: true
+  stl: false
+  png: false
