@@ -15,9 +15,9 @@ model:
   params:
     enable_opengrid: true
     bin:
-      length_mm: 500.0
-      width_mm: 132.0
-      height_mm: 660.0  # eine OpenGrid-Einheit niedriger als OpenGrid 2
+      length_mm: 514.0
+      width_mm: 170.0
+      height_mm: 605.0
       wall_thickness_mm: 6.8 # 4mm =  lite, 6.8 mm = full
       max_tile_mm: 256.0
       dimension_rounding: floor  # tightened width (132 mm) snaps to 4 tiles (4 × 28 mm)
@@ -39,13 +39,13 @@ model:
       spacing_mm: 6.0
 
 export:
-  output_dir: ./out/opengrid_papierkorb_full
-  basename: opengrid_papierkorb_full
+  output_dir: ./../out/opengrid-papierkorb-1_full
+  basename: opengrid-papierkorb-1_full
   scad: true
   stl: false
   step: false
   step_backend: freecad_auto
-  freecad_bin: ./tooling/freecadcmd-local.sh
+  freecad_bin: ./../tooling/freecadcmd-local.sh
   freecad_mesh_tolerance: 0.15
   openscad_bin: openscad
   png: true

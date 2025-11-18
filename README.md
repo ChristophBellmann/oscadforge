@@ -5,9 +5,46 @@ Instead of hand-editing `.scad`, you describe geometry in YAML, pass it to the C
 
 
 ## create 
+
+Use a Template to create  from a Model. Choose options via config.
+
 ```
 python3 -m oscadforge.oscadforge oscadforge/templates/model_opengrid-papierkorb.yaml oscadforge/config/export_opengrid_papierkorb_step_freecad.yaml
 ```
+Or just create with the template:  
+  
+ ```
+python3 -m oscadforge.oscadforge oscadforge/templates/model_opengrid-papierkorb.yaml
+```
+
+## Available 
+
+Liste avalible Models to create
+```
+python3 -m oscadforge.oscadforge --list
+
+```
+
+example output:  
+  
+  Engine models registered in oscadforge:
+  - opengrid_2
+  - opengrid_papierkorb
+  - papierkorb_tiles
+  - solar_bus_roof
+
+Python templates under oscadforge/templates/:
+  (none found)
+
+Model YAML presets under oscadforge/templates/:
+  - oscadforge/templates/model_opengrid-papierkorb-breit_lite.yaml
+  - oscadforge/templates/model_opengrid-papierkorb.yaml
+  - oscadforge/templates/model_opengrid-papierkorb_full.yaml
+  - oscadforge/templates/model_opengrid_2.yaml
+  - oscadforge/templates/model_papierkorb.yaml
+  - oscadforge/templates/model_solar_bus.yaml
+
+
 
 ## INFO
 

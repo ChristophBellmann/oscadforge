@@ -18,18 +18,18 @@ model:
       length_mm: 500.0
       width_mm: 132.0
       height_mm: 660.0  # eine OpenGrid-Einheit niedriger als OpenGrid 2
-      wall_thickness_mm: 6.8 # 4mm =  lite, 6.8 mm = full
+      wall_thickness_mm: 4 # 4mm =  lite, 6.8 mm = full
       max_tile_mm: 256.0
       dimension_rounding: floor  # tightened width (132 mm) snaps to 4 tiles (4 × 28 mm)
     board:
-      variant: Full        # Full, Lite, Heavy
+      variant: Lite        # Full, Lite, Heavy
       tile_size_mm: 28.0
       chamfers: Corners
       screw_mounting: None
       connector_holes: true
       adhesive_base: false
     connectors:
-      snap_variant: full   # lite/full
+      snap_variant: lite   # lite/full
       directional_snaps: false
       include_floor_edges: false
       generate_connectors: false
@@ -39,13 +39,13 @@ model:
       spacing_mm: 6.0
 
 export:
-  output_dir: ./out/opengrid_papierkorb_full
-  basename: opengrid_papierkorb_full
+  output_dir: ./../out/opengrid-papierkorb-2_lite
+  basename: opengrid-papierkorb-2_lite
   scad: true
   stl: false
   step: false
   step_backend: freecad_auto
-  freecad_bin: ./tooling/freecadcmd-local.sh
+  freecad_bin: ./../tooling/freecadcmd-local.sh
   freecad_mesh_tolerance: 0.15
   openscad_bin: openscad
   png: true

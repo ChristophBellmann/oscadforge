@@ -39,13 +39,13 @@ model:
       spacing_mm: 6.0
 
 export:
-  output_dir: ./out/opengrid_papierkorb_full
-  basename: opengrid_papierkorb_full
+  output_dir: ./../out/opengrid-papierkorb-2_full
+  basename: opengrid-papierkorb-2_full
   scad: true
   stl: false
   step: false
   step_backend: freecad_auto
-  freecad_bin: ./tooling/freecadcmd-local.sh
+  freecad_bin: ./../tooling/freecadcmd-local.sh
   freecad_mesh_tolerance: 0.15
   openscad_bin: openscad
   png: true
