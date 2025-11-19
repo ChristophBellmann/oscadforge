@@ -1,8 +1,10 @@
 
 #!/bin/bash
 
+export DATE=$(date +%F,%T)
 CONFIG_FILE="config/export-to-stl.yaml"
 OUTPUT_BASE_DIR="out"
+
 
 # Entspricht: 
 
@@ -24,6 +26,7 @@ MODELS=(
     opengrid-papierkorb-2_full
     opengrid-papierkorb-2_lite
 )
+MODEL_CALFILENAME="./../out/Papierkorb1_2_summary.md"
 
 echo "--- Starte Generierung (Parallel) und Dimensionsanalyse ---"
 
@@ -58,7 +61,6 @@ for model_name in "${MODELS[@]}"; do
     STL_FILE="./../${OUTPUT_BASE_DIR}/${model_name}/${model_name}.stl"
     SUMMARY_FILE="./../${OUTPUT_BASE_DIR}/${model_name}/summary.md"
 
-
     if [ -f "$STL_FILE" ]; then
         echo "Analysiere Dimensionen für $STL_FILE..."
 
@@ -85,14 +87,10 @@ for model_name in "${MODELS[@]}"; do
 	# Also echo "Länge:  ${LENGTH%.*} mm" >> "$SUMMARY_FILE"
       
         #  Ausgabe in die summary.md Datei
-        echo "# Zusammenfassung der Modelldimensionen" > "$SUMMARY_FILE"
-        echo "" >> "$SUMMARY_FILE"
-        echo "## Dateiname: ${model_name}.stl" >> "$SUMMARY_FILE"
-        echo "" >> "$SUMMARY_FILE"
-        echo "### Bounding Box Koordinaten:" >> "$SUMMARY_FILE"
-        echo "Länge:  ${LENGTH%.*} mm" >> "$SUMMARY_FILE"
-        echo "Breite: ${WIDTH%.*} mm" >> "$SUMMARY_FILE"
-        echo "Höhe:   ${HEIGHT%.*} mm" >> "$SUMMARY_FILE"
+        echo "### Datei: ${model_name}.stl @ Datum: ${DATE}" | tee -a "$MODEL_CALFILENAME" >> "$SUMMARY_FILE"
+        echo "Länge:  ${LENGTH%.*} mm" | tee -a "$MODEL_CALFILENAME" >> "$SUMMARY_FILE"
+        echo "Breite: ${WIDTH%.*} mm" | tee -a "$MODEL_CALFILENAME" >> "$SUMMARY_FILE"
+        echo "Höhe:   ${HEIGHT%.*} mm" | tee -a "$MODEL_CALFILENAME" >> "$SUMMARY_FILE"
         
         echo "Zusammenfassung in $SUMMARY_FILE gespeichert."
     else

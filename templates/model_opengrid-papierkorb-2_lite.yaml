@@ -15,9 +15,9 @@ model:
   params:
     enable_opengrid: true
     bin:
-      length_mm: 500.0
-      width_mm: 132.0
-      height_mm: 660.0  # eine OpenGrid-Einheit niedriger als OpenGrid 2
+      length_mm: 514.0
+      width_mm: 160.0
+      height_mm: 667.0  # eine OpenGrid-Einheit niedriger als OpenGrid 2
       wall_thickness_mm: 4 # 4mm =  lite, 6.8 mm = full
       max_tile_mm: 256.0
       dimension_rounding: floor  # tightened width (132 mm) snaps to 4 tiles (4 × 28 mm)

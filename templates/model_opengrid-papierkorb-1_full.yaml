@@ -16,8 +16,8 @@ model:
     enable_opengrid: true
     bin:
       length_mm: 514.0
-      width_mm: 170.0
-      height_mm: 605.0
+      width_mm: 240.0
+      height_mm: 572.0
       wall_thickness_mm: 6.8 # 4mm =  lite, 6.8 mm = full
       max_tile_mm: 256.0
       dimension_rounding: floor  # tightened width (132 mm) snaps to 4 tiles (4 × 28 mm)
