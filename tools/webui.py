@@ -12,7 +12,6 @@ from ..core import engine, io
 from ..oscadforge import _read_total_energy_uj
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-TEMPLATE_DIR = REPO_ROOT / "oscadforge" / "templates"
 CONFIG_DIR = REPO_ROOT / "oscadforge" / "config"
 
 
@@ -38,21 +37,16 @@ class ForgeRequestHandler(BaseHTTPRequestHandler):
         length = int(self.headers.get("Content-Length", "0"))
         data = self.rfile.read(length).decode("utf-8", errors="replace")
         fields = parse_qs(data)
-        template_name = fields.get("template", [""])[0]
         config_names = fields.get("configs", [])
         dry_run = fields.get("dry_run", ["off"])[0] == "on"
-        message, result_html = self._handle_run(template_name, config_names, dry_run)
+        message, result_html = self._handle_run(config_names, dry_run)
         self._render_page(message=message, result_html=result_html)
 
     def log_message(self, format: str, *args) -> None:  # pragma: no cover - quiet server
         return
 
     def _render_page(self, *, message: str = "", result_html: str = "") -> None:
-        templates = _list_yaml_files(TEMPLATE_DIR)
         configs = _list_yaml_files(CONFIG_DIR)
-        tmpl_options = "\n".join(
-            f'<option value="{html.escape(path.name)}">{html.escape(path.name)}</option>' for path in templates
-        )
         cfg_options = "\n".join(
             f'<option value="{html.escape(path.name)}">{html.escape(path.name)}</option>' for path in configs
         )
@@ -76,13 +70,8 @@ class ForgeRequestHandler(BaseHTTPRequestHandler):
     <h1>OpenSCADForge Web UI</h1>
     {message_html}
     <form method='post' action='/run'>
-      <label>Model Template</label>
-      <select name='template' required>
-        <option value=''>-- choose --</option>
-        {tmpl_options}
-      </select>
-      <label>Config Overrides (STRG/SHIFT für Mehrfachauswahl)</label>
-      <select name='configs' multiple>
+      <label>Config files (STRG/SHIFT für Mehrfachauswahl)</label>
+      <select name='configs' multiple required>
         {cfg_options}
       </select>
       <label><input type='checkbox' name='dry_run'> Dry run (nur Merge anzeigen)</label>
@@ -101,21 +90,13 @@ class ForgeRequestHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(payload)
 
-    def _handle_run(self, template_name: str, config_names: Iterable[str], dry_run: bool) -> tuple[str, str]:
-        template_map = {path.name: path for path in _list_yaml_files(TEMPLATE_DIR)}
+    def _handle_run(self, config_names: Iterable[str], dry_run: bool) -> tuple[str, str]:
         config_map = {path.name: path for path in _list_yaml_files(CONFIG_DIR)}
-        if not template_name:
-            return "Bitte ein Modellyaml auswählen", ""
-        template_path = template_map.get(template_name)
-        if not template_path:
-            return f"Template {template_name} nicht gefunden", ""
-        configs = []
-        for name in config_names:
-            cfg = config_map.get(name)
-            if cfg:
-                configs.append(cfg)
+        configs = [config_map[name] for name in config_names if name in config_map]
+        if not configs:
+            return "Bitte mindestens eine Config auswählen", ""
         try:
-            merged = _merge_configs([template_path] + configs)
+            merged = _merge_configs(configs)
             if dry_run:
                 return "Dry run abgeschlossen", html.escape(json.dumps(merged, indent=2, sort_keys=True))
             start = time.perf_counter()

@@ -61,6 +61,6 @@ Goal: Rework the current `tiled_bin_anchorscad.py` monolith into modular compone
 ## Status (2024)
 - `oscadforge/core/models/papierkorb/panels.py` + `layout.py` liefern die Panel-API inkl. OpenGrid-/Honeycomb-Zuordnung.
 - `oscadforge/core/models/papierkorb/__init__.py` exportiert separate Artefakte (`assembled`, `flat sheetNN`) und erzeugt PNG/STL je Layout.
-- YAML-Pipelines (z. B. `oscadforge/templates/model_papierkorb.yaml` + `oscadforge/config/papierkorb_nohex.yaml`) reichen Layout-Blöcke direkt über den CLI-Merger durch.
+- YAML-Pipelines (z. B. `oscadforge/config/model_papierkorb.yaml` + `oscadforge/config/papierkorb_nohex.yaml`) reichen Layout-Blöcke direkt über den CLI-Merger durch.
 - Tests sichern die neue Architektur (`tests/test_engine_core.py::test_flat_layout_produces_sheet_artifacts`), Anchorscad-Makro nutzt dieselben Module.
 - Papierkorb nutzt inzwischen die jl_scad-Shell als „Urgeometrie“: Python erzeugt die Tiles via `intersection` + Feature-Booleans, Layout/CLI bleiben unverändert.

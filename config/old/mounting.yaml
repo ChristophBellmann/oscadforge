@@ -1,0 +1,12 @@
+mounting:
+  type: rail
+  rail_height_mm: 40
+  show_mounting: true
+model:
+  layout:
+    bed_mm:
+    - 200.0
+    - 200.0
+    spacing_mm: 6.0
+printer:
+  name: ultimaker2

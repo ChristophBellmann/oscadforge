@@ -47,7 +47,7 @@ Dieses Dokument bündelt alle Ziele und Pläne rund um den Umbau des Papierkorb-
 - PNG-Fallback wählt Layout-spezifische Darstellung (isometrisch assembled, top-down flat).
 
 ### 4. YAML/CLI
-- YAML-Dateien (`oscadforge/templates/model_papierkorb.yaml`, `oscadforge/config/papierkorb_nohex.yaml`, `oscadforge/config/papierkorb_shell.yaml`, …) enthalten Modellparameter, Layout-Blöcke und Export-Overrides.
+- YAML-Dateien (`oscadforge/config/model_papierkorb.yaml`, `oscadforge/config/papierkorb_nohex.yaml`, `oscadforge/config/papierkorb_shell.yaml`, …) enthalten Modellparameter, Layout-Blöcke und Export-Overrides.
 - CLI (`oscadforge/oscadforge.py`) deep-mergt beliebig viele Dateien, optional ergänzt durch stdin (`-`). `-o` erzeugt gezielt ein Artefakt, `--result-json` listet die erzeugten Sheets/Metadaten.
 - `simple_shell: true` im YAML aktiviert den einteiligen Shell-Korpus (kein Panel-Layout, kein Honeycomb) – praktisch für schnelle Prototypen ähnlich wie im ursprünglichen Einzelkörper-Workflow.
 

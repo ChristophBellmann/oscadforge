@@ -1,0 +1,24 @@
+model:
+  params:
+    enable_honeycomb: false
+    enable_rim: true
+  layout:
+    mode: assembled
+    bed_mm:
+    - 200.0
+    - 200.0
+    spacing_mm: 6.0
+export:
+  output_dir: ./out/papierkorb/panels
+  basename: papierkorb_panels
+  scad: true
+  stl: true
+  png:
+    enabled: true
+    imgsize:
+    - 1200
+    - 900
+    viewall: true
+    view: edges
+printer:
+  name: ultimaker2

@@ -16,7 +16,6 @@ from ..oscadforge import _read_total_energy_uj
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-TEMPLATE_DIR = REPO_ROOT / "oscadforge" / "templates"
 CONFIG_DIR = REPO_ROOT / "oscadforge" / "config"
 
 
@@ -25,8 +24,6 @@ class OscadForgeUI(tk.Tk):
         super().__init__()
         self.title("OpenSCADForge UI")
         self.geometry("900x600")
-        self.selected_template: Path | None = None
-        self.template_paths: list[Path] = []
         self.config_paths: list[Path] = []
         self._build_widgets()
         self._refresh_lists()
@@ -38,22 +35,12 @@ class OscadForgeUI(tk.Tk):
         lists_frame = ttk.Frame(main_frame)
         lists_frame.pack(fill=tk.X)
 
-        # Template list
-        tmpl_frame = ttk.Frame(lists_frame)
-        tmpl_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 10))
-        ttk.Label(tmpl_frame, text="Model Templates").pack(anchor=tk.W)
-        self.template_list = tk.Listbox(tmpl_frame, selectmode=tk.SINGLE, exportselection=False, height=12)
-        self.template_list.pack(fill=tk.BOTH, expand=True)
-        self.template_list.bind("<<ListboxSelect>>", self._on_template_select)
-
-        # Config list (multi-select)
         cfg_frame = ttk.Frame(lists_frame)
-        cfg_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        ttk.Label(cfg_frame, text="Config Overrides (multi-select)").pack(anchor=tk.W)
+        cfg_frame.pack(fill=tk.BOTH, expand=True)
+        ttk.Label(cfg_frame, text="Config presets (multi-select)").pack(anchor=tk.W)
         self.config_list = tk.Listbox(cfg_frame, selectmode=tk.MULTIPLE, exportselection=False, height=12)
         self.config_list.pack(fill=tk.BOTH, expand=True)
 
-        # Controls
         controls = ttk.Frame(main_frame)
         controls.pack(fill=tk.X, pady=5)
         self.dry_run_var = tk.BooleanVar(value=False)
@@ -68,39 +55,25 @@ class OscadForgeUI(tk.Tk):
         self.output_box.pack(fill=tk.BOTH, expand=True, pady=(5, 0))
 
     def _refresh_lists(self) -> None:
-        self.template_paths = _list_yaml_files(TEMPLATE_DIR)
         self.config_paths = _list_yaml_files(CONFIG_DIR)
-        self.template_list.delete(0, tk.END)
-        for path in self.template_paths:
-            self.template_list.insert(tk.END, path.name)
         self.config_list.delete(0, tk.END)
         for path in self.config_paths:
             self.config_list.insert(tk.END, path.name)
-        self.status_var.set("Templates und Configs aktualisiert")
-
-    def _on_template_select(self, _event=None) -> None:  # type: ignore[override]
-        sel = self.template_list.curselection()
-        if not sel:
-            self.selected_template = None
-            return
-        idx = sel[0]
-        if 0 <= idx < len(self.template_paths):
-            self.selected_template = self.template_paths[idx]
+        self.status_var.set("Configs aktualisiert")
 
     def _start_run(self) -> None:
-        if not self.selected_template:
-            messagebox.showwarning("Fehlende Auswahl", "Bitte ein Modellyaml auswählen.")
-            return
         configs = [self.config_paths[i] for i in self.config_list.curselection()]
+        if not configs:
+            messagebox.showwarning("Fehlende Auswahl", "Bitte mindestens eine Config auswählen.")
+            return
         dry_run = self.dry_run_var.get()
         self.status_var.set("Baue …")
-        self._append_output(f"Starte Build mit {self.selected_template.name} + {len(configs)} Overrides\n")
-        threading.Thread(target=self._run_build, args=(self.selected_template, configs, dry_run), daemon=True).start()
+        self._append_output(f"Starte Build mit {len(configs)} Config(s)\n")
+        threading.Thread(target=self._run_build, args=(configs, dry_run), daemon=True).start()
 
-    def _run_build(self, template: Path, configs: Iterable[Path], dry_run: bool) -> None:
+    def _run_build(self, configs: Iterable[Path], dry_run: bool) -> None:
         try:
             config_dicts: List[dict] = []
-            config_dicts.append(io.load_yaml(template))
             for cfg in configs:
                 config_dicts.append(io.load_yaml(cfg))
             merged = io.merge_dicts(config_dicts)

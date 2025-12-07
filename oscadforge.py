@@ -11,8 +11,8 @@ from pathlib import Path
 from typing import Any, Mapping, NamedTuple, Sequence
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_CONFIG_DIR = REPO_ROOT / "oscadforge" / "config"
-DEFAULT_TEMPLATE_DIR = REPO_ROOT / "oscadforge" / "templates"
+PROJECT_DIR = REPO_ROOT / "oscadforge"
+DEFAULT_CONFIG_DIR = PROJECT_DIR / "config"
 
 STDIN_SOURCE = "<stdin>"
 MERGED_SOURCE = "<merged>"
@@ -23,12 +23,10 @@ class ConfigNote(NamedTuple):
     description: str
 
 if __package__ is None or __package__ == "":  # script mode
-    sys.path.insert(0, str(REPO_ROOT))
-    from oscadforge.core import engine, io  # type: ignore  # noqa: E402
-    from oscadforge.projects.loader import TemplateError, load_template  # type: ignore  # noqa: E402
+    sys.path.insert(0, str(PROJECT_DIR))
+    from core import engine, io  # type: ignore  # noqa: E402
 else:
     from .core import engine, io  # type: ignore  # noqa: F401
-    from .projects.loader import TemplateError, load_template  # type: ignore  # noqa: F401
 
 
 def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
@@ -45,7 +43,7 @@ def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         "-l",
         "--list",
         action="store_true",
-        help="List available engine models and project scripts.",
+        help="List available engine models and config presets.",
     )
     parser.add_argument(
         "--openscad-bin",
@@ -65,11 +63,6 @@ def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         "--result-json",
         help="Write engine result metadata as JSON (use '-' for stdout).",
     )
-    parser.add_argument(
-        "-t",
-        "--template",
-        help="Python template (file or module) that converts YAML/JSON data into an engine config.",
-    )
     return parser.parse_args(argv)
 
 
@@ -77,28 +70,19 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = _parse_args(argv)
 
     if args.list:
-        _print_available_projects()
+        _print_available_configs()
         return 0
 
     if args.dry_run and args.output:
         print("error: --dry-run cannot be combined with -o/--output", file=sys.stderr)
         return 1
 
-    collected = _collect_config_dicts(args, require_input=not args.template)
+    collected = _collect_config_dicts(args)
     if collected is None:
         return 1
     config_dicts, config_notes = collected
 
-    if args.template:
-        try:
-            template = load_template(args.template)
-        except TemplateError as exc:
-            print(f"error: {exc}", file=sys.stderr)
-            return 1
-        data_payload = io.merge_dicts(config_dicts) if config_dicts else {}
-        merged = _apply_template(template, data_payload)
-    else:
-        merged = io.merge_dicts(config_dicts)
+    merged = io.merge_dicts(config_dicts)
     if args.openscad_bin:
         merged.setdefault("export", {})["openscad_bin"] = args.openscad_bin
 
@@ -157,37 +141,26 @@ def main(argv: Sequence[str] | None = None) -> int:
     return 0
 
 
-def _print_available_projects() -> None:
+def _print_available_configs() -> None:
     print("Engine models registered in oscadforge:")
     for name in engine.available_models():
         print(f"  - {name}")
 
-    print("\nPython templates under oscadforge/templates/:")
-    templates_dir = REPO_ROOT / "oscadforge" / "templates"
-    if not templates_dir.exists():
+    print("\nConfig presets under oscadforge/config/:")
+    configs_dir = DEFAULT_CONFIG_DIR
+    if not configs_dir.exists():
+        print("  (none found)")
+        return
+    yaml_files = sorted(list(configs_dir.glob("*.yaml")) + list(configs_dir.glob("*.yml")))
+    if not yaml_files:
         print("  (none found)")
     else:
-        template_files = sorted(templates_dir.glob("*.py"))
-        if not template_files:
-            print("  (none found)")
-        else:
-            for script in template_files:
-                print(f"  - {script.relative_to(REPO_ROOT)}")
-
-    print("\nModel YAML presets under oscadforge/templates/:")
-    if not templates_dir.exists():
-        print("  (none found)")
-    else:
-        yaml_files = sorted(list(templates_dir.glob("*.yaml")) + list(templates_dir.glob("*.yml")))
-        if not yaml_files:
-            print("  (none found)")
-        else:
-            for preset in yaml_files:
-                print(f"  - {preset.relative_to(REPO_ROOT)}")
+        for preset in yaml_files:
+            print(f"  - {preset.relative_to(REPO_ROOT)}")
 
 
 def _collect_config_dicts(
-    args: argparse.Namespace, *, require_input: bool = True
+    args: argparse.Namespace,
 ) -> tuple[list[dict], list[ConfigNote]] | None:
     dicts: list[dict] = []
     notes: list[ConfigNote] = []
@@ -219,13 +192,11 @@ def _collect_config_dicts(
                 _record_meta(str(resolved_path), cfg)
     else:
         if sys.stdin.isatty():
-            if require_input:
-                print("error: please provide config files, '-' for stdin, or use --list", file=sys.stderr)
-                return None
-            return [], []
+            print("error: please provide config files, '-' for stdin, or use --list", file=sys.stderr)
+            return None
         dicts.append(read_stdin())
 
-    if not dicts and require_input:
+    if not dicts:
         print("error: no configuration data supplied", file=sys.stderr)
         return None
     return dicts, notes
@@ -299,13 +270,6 @@ def _format_source_label(source: str) -> str:
         return source
 
 
-def _apply_template(template, data: dict) -> dict:
-    try:
-        return template.build_config(data, root=REPO_ROOT)
-    except TypeError:
-        return template.build_config(data)
-
-
 def _prepare_for_artifact(config: dict, temp_dir: Path, target_path: Path) -> dict:
     cfg = copy.deepcopy(config)
     export = copy.deepcopy(cfg.get("export", {}))
@@ -321,9 +285,6 @@ def _prepare_for_artifact(config: dict, temp_dir: Path, target_path: Path) -> di
         export["png"] = _ensure_png_options(export.get("png"))
         export["stl"] = True
         export["scad"] = True
-    elif ext == ".step":
-        export["step"] = True
-        export.setdefault("scad", True)
     elif ext == ".step":
         export["step"] = True
         export.setdefault("scad", True)
@@ -376,9 +337,8 @@ def _load_config_file(entry: str) -> tuple[dict, Path]:
     search_tried = [path]
     if not path.exists():
         candidates = []
-        for base in (DEFAULT_CONFIG_DIR, DEFAULT_TEMPLATE_DIR):
-            if not base.exists():
-                continue
+        base = DEFAULT_CONFIG_DIR
+        if base.exists():
             candidates.append(base / entry)
             if not entry.endswith(('.yaml', '.yml')):
                 candidates.append(base / f"{entry}.yaml")

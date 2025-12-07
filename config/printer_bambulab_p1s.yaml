@@ -1,6 +1,0 @@
-model:
-  params:
-    max_tile_mm: 248.0   # 256 mm bed minus a small guard band
-  layout:
-    bed_mm: [256.0, 256.0]
-    spacing_mm: 8.0

@@ -26,7 +26,7 @@ Additional notes:
 
 ```bash
 python3 -m oscadforge.oscadforge \
-  oscadforge/templates/model_papierkorb.yaml \
+  oscadforge/config/model_papierkorb.yaml \
   oscadforge/config/papierkorb_opengrid.yaml
 ```
 

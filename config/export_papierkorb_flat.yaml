@@ -1,6 +1,0 @@
-export:
-  scad: true
-  stl: false
-  png: false
-  output_dir: ./out/papierkorb/ultimaker2
-  basename: papierkorb_flat_ultimaker2

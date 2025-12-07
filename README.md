@@ -6,23 +6,20 @@ Instead of hand-editing `.scad`, you describe geometry in YAML, pass it to the C
 
 ## create 
 
-Use a Template to create  from a Model. Choose options via config.
+Pass configuration YAMLs to describe the model parameters, layout, and export overrides. The CLI deep-merges the files in the order you list them, so you can keep shared overrides in separate configs without duplicating the base model.
 
 ```
-python3 -m oscadforge.oscadforge oscadforge/templates/model_opengrid-papierkorb.yaml oscadforge/config/export_opengrid_papierkorb_step_freecad.yaml
+python3 -m oscadforge.oscadforge oscadforge/config/opengrid_papierkorb.yaml
 ```
-Or just create with the template:  
-  
- ```
-python3 -m oscadforge.oscadforge oscadforge/templates/model_opengrid-papierkorb.yaml
-```
+
+Append additional config files to toggle features, printer profiles, or export formats.
 
 ## Available 
 
-Liste avalible Models to create
+List available engine models and config presets:
+
 ```
 python3 -m oscadforge.oscadforge --list
-
 ```
 
 example output:  
@@ -33,16 +30,8 @@ example output:
   - papierkorb_tiles
   - solar_bus_roof
 
-Python templates under oscadforge/templates/:
-  (none found)
-
-Model YAML presets under oscadforge/templates/:
-  - oscadforge/templates/model_opengrid-papierkorb-breit_lite.yaml
-  - oscadforge/templates/model_opengrid-papierkorb.yaml
-  - oscadforge/templates/model_opengrid-papierkorb_full.yaml
-  - oscadforge/templates/model_opengrid_2.yaml
-  - oscadforge/templates/model_papierkorb.yaml
-  - oscadforge/templates/model_solar_bus.yaml
+Config presets under oscadforge/config/:
+  - oscadforge/config/opengrid_papierkorb.yaml
 
 
 
@@ -52,35 +41,14 @@ Model YAML presets under oscadforge/templates/:
 # List registered engine models
 python3 -m oscadforge.oscadforge -l
 
-# Papierkorb run: defaults + "no honeycomb" override from config
+# Run the OpenGrid Papierkorb config
 python3 -m oscadforge.oscadforge \
-  oscadforge/templates/model_papierkorb.yaml \
-  oscadforge/config/papierkorb_nohex.yaml
+  oscadforge/config/opengrid_papierkorb.yaml
 
-# Papierkorb run: Ultimaker-ready OpenGrid tiles (assembled + flat sheets)
+# Merge custom overrides on top of the base config
 python3 -m oscadforge.oscadforge \
-  oscadforge/templates/model_papierkorb.yaml \
-  oscadforge/config/papierkorb_opengrid.yaml
-
-# Papierkorb (OpenGrid 2) – panels & connectors straight from the OpenGrid sources
-python3 -m oscadforge.oscadforge \
-  oscadforge/templates/model_opengrid_2.yaml
-
-# Papierkorb (OpenGrid Full, 1 Tile kürzer)
-python3 -m oscadforge.oscadforge \
-  oscadforge/templates/model_opengrid-papierkorb.yaml
-
-# OpenGrid-Papierkorb (SCAD + STEP Export)
-python3 -m oscadforge.oscadforge \
-  oscadforge/templates/model_opengrid-papierkorb.yaml \
-  oscadforge/config/export_opengrid_papierkorb_step_freecad.yaml
-# Das Template setzt `dimension_rounding: floor`, daher reduziert sich die Breite (132 mm)
-# automatisch auf 4 OpenGrid-Zellen à 28 mm und bleibt im 256 mm Druckbett.
-
-# Papierkorb (CSG → FreeCAD STEP + dedup cache)
-python3 -m oscadforge.oscadforge \
-  oscadforge/templates/model_papierkorb.yaml \
-  oscadforge/config/export_papierkorb_step_freecad_dedup.yaml
+  oscadforge/config/opengrid_papierkorb.yaml \
+  oscadforge/config/your_override.yaml
 
 # Pipeline from stdin → render artefact → JSON metadata
 cat papierkorb_config.yaml | python3 -m oscadforge.oscadforge \
@@ -91,24 +59,23 @@ python3 -m oscadforge.tools.scad2step \
   my_model.scad out/my_model.step \
   --backend freecad_csg --freecad-bin ./tooling/freecadcmd-local.sh
 
-# Experimentelle UI mit Template/Config-Selector
+# Experimentelle UI
 python3 -m oscadforge.tools.ui
 
-Die Tkinter-Oberfläche listet alle Modellyamls aus `oscadforge/templates/`
-und die Overrides aus `oscadforge/config/`. Wähle links ein Modell, rechts
-beliebige Overrides, entscheide optional auf „Dry run“ und starte den Build.
-Die Ausgabe zeigt dieselben Logs wie der CLI-Run und beendet mit dem neuen
-Statistik-Block (Laufzeit +, falls verfügbar, Energieverbrauch). Für volle
-Exports gelten dieselben Tooling-Abhängigkeiten wie beim Terminal-Aufruf
-(OpenSCAD/FreeCAD-Pfade etc.).
+Die Tkinter-Oberfläche listet alle Configs aus `oscadforge/config/`.
+Wähle eine oder mehrere YAMLs (SHIFT/STRG für Mehrfachauswahl), entscheide
+optional auf „Dry run“ und starte den Build. Die Ausgabe zeigt dieselben Logs
+wie der CLI-Run und endet mit dem neuen Statistik-Block (Laufzeit +, falls
+verfügbar, Energieverbrauch). Für volle Exports gelten dieselben Tooling-
+Abhängigkeiten wie beim Terminal-Aufruf (OpenSCAD/FreeCAD-Pfade etc.).
 
 # Web UI (lokaler HTTP-Server)
 python3 -m oscadforge.tools.webui
 
 Der kleine HTTP-Server läuft standardmäßig auf `http://127.0.0.1:8765/` und
 liefert dieselben Listen/Optionen wie die Tkinter-App – nur diesmal im Browser.
-Modell auswählen, Configs markieren, auf „Run“ klicken, fertig. Logs, SCAD-/STEP-
-Pfade sowie der Statistikblock erscheinen im Browserfenster.
+Config-Dateien auswählen, auf „Run“ klicken, fertig. Logs, SCAD-/STEP-Pfade
+sowie der Statistikblock erscheinen im Browserfenster.
 
 Need to re-emit the legacy reference SCAD from `in/Papierkorb/`? The old AnchorSCAD script still works:
 
@@ -119,16 +86,13 @@ pip install anchorscad-core pyyaml
 python Papierkorb/tiled_bin_anchorscad.py --scad in/Papierkorb/papierkorb_tiles.scad
 ```
 
-That directory remains as historical documentation—the current engine generates everything from the YAML stacks under `oscadforge/templates/` (model presets) plus `oscadforge/config/` (printer/export overrides).
+That directory remains as historical documentation—the current engine generates everything from the YAML stacks under `oscadforge/config/` (model presets, layout overrides and export tweaks).
 
 ```
 
-Need to prep OpenGrid 2 artifacts on a slower laptop and finish STEP on a bigger workstation? Temporarily set `export.step: false` inside `oscadforge/config/export_opengrid2_step_freecad.yaml`, run the command above to refresh `out/opengrid2_freecad/*.scad`, sync that directory to the faster machine, flip `export.step` back to `true`, and rerun the same command to let FreeCAD convert every sheet into STEP.
+Need to prep OpenGrid 2 artifacts on a slower laptop and finish STEP on a bigger workstation? Temporarily set `export.step: false` (or any other override) when running the config to emit just the SCAD/PNG artifacts, sync them to the faster machine, then rerun the same command with `export.step: true` (the config already configures Step via FreeCAD) so FreeCAD converts every sheet into STEP.
 
-Need die kürzere OpenGrid-Full-Variante? Ersetze das Modellyaml durch
-`oscadforge/templates/model_opengrid-papierkorb.yaml` und kombiniere es bei
-STEP-basierten Läufen mit `oscadforge/config/export_opengrid_papierkorb_step_freecad.yaml`
-– identischer Workflow, aber Ausgaben landen unter `out/opengrid_papierkorb_freecad/`.
+Need die kürzere OpenGrid-Full-Variante? Die Konfigurationsdatei verwendet denselben Generator, nutzt aber die OpenGrid-"Full"-Boards samt Connector-Sleeves aus `third_party/QuackWorks/openGrid` und kürzt das Gehäuse um eine Tile (28 mm). Der Export schreibt STEP/PNG automatisch nach `out/opengrid_papierkorb_freecad/`. Willst du nur SCAD/PNG, schalte `export.step: false` (z. B. per Inline-Override) und starte denselben Befehl erneut, oder passe `png.imgsize`/`freecad_mesh_tolerance` falls du das Standardverhalten weiter spezifizieren willst.
 
 Bulk STL folder? Point the converter at the root directory and let it spawn one FreeCAD job per file:
 
@@ -141,8 +105,8 @@ Every `.stl` under `in/` (and its subdirectories) receives a sibling `.step`. Ex
 
 ### OpenGrid 2 workflow notes
 
-* The OpenGrid preset now uses `connectors.generate_connectors: false` (see `oscadforge/templates/model_opengrid_2.yaml`), so no separate `opengrid2_freecad_connectors.scad` is produced. Only the assembled bin and the per-sheet QuackWorks tiles land in `out/opengrid2_freecad/`.
-* Die neue `oscadforge/templates/model_opengrid-papierkorb.yaml` Variante bleibt beim selben Generator, nutzt aber konsequent die OpenGrid-"Full"-Boards samt Connector-Sleeves aus `third_party/QuackWorks/openGrid` und kürzt das Gehäuse um eine Tile (28 mm). Für STEP/PNG gleich `oscadforge/config/export_opengrid_papierkorb_step_freecad.yaml` mergen, Ausgabe landet unter `out/opengrid_papierkorb_freecad/`.
+* The OpenGrid preset now uses `connectors.generate_connectors: false` (check `oscadforge/config/opengrid_papierkorb.yaml`), so no separate `opengrid2_freecad_connectors.scad` is produced. Only the assembled bin and the per-sheet QuackWorks tiles land in `out/opengrid2_freecad/`.
+* Die neue Konfiguration unter `oscadforge/config/opengrid_papierkorb.yaml` nutzt konsequent die OpenGrid-"Full"-Boards samt Connector-Sleeves aus `third_party/QuackWorks/openGrid` und kürzt das Gehäuse um eine Tile (28 mm). STEP/PNG liefern die eingebauten `export.step`-/`png`-Einstellungen automatisch nach `out/opengrid_papierkorb_freecad/`.
 * STEP generation relies on the FreeCAD STL backend. If a conversion stalls or you want tighter control, call the helper manually:
 
   ```
@@ -165,7 +129,20 @@ Need to keep large YAML runs manageable? Enable the STEP dedup cache: `export.st
 
 ## Repository Map
 
-| Path | Purpose | |------|---------| | `oscadforge/oscadforge.py` | Pandoc-like CLI entrypoint (`python3 -m oscadforge.oscadforge …`). | | `oscadforge/core/*` | Engine, exporters, config utilities. | | `oscadforge/config/` | Printer/export overrides and shared YAML blocks (e.g. `export_local.yaml`, `papierkorb_nohex.yaml`, `layout_both.yaml`). The CLI auto-searches here when you pass bare filenames. | | `oscadforge/templates/` | Model YAML presets (e.g. `model_papierkorb.yaml`, `model_opengrid_2.yaml`, `model_opengrid-papierkorb.yaml`). The CLI searches this directory after `oscadforge/config/`. | | `in/Papierkorb/` | Project docs for the Papierkorb reference model (now SCAD-native). | | `oscadforge/docs/opengrid_2.md` | Notes for the OpenGrid-backed Papierkorb variant (panels + connectors imported from the QuackWorks/openGrid repos). | | `oscadforge/docs/concept_scad_to_step_dedup.md` | Concept: CSG hashing + STEP deduplication flow (no code). | | `third_party/BOSL2/` | Vendored [BOSL2](https://github.com/BelfrySCAD/BOSL2) OpenSCAD library (primitives, rounding, attachments). | | `third_party/jl_scad/` | Vendored [jl_scad](https://github.com/lijon/jl_scad) sources powering the Papierkorb shell. | | `out/` | Default artefact directory (SCAD/STL/PNG). | | `tests/` | Pytest suite covering CLI flows and geometry smoke tests. | | `in/opengrid_printables/` | Printables dumps (OpenGrid tiles, Multiconnect clips, mounting docs, etc.) for manual reference. | | `in/opengrid_angle/` | 90° OpenGrid angle connectors from Printables (`*_Nx.stl` plus PDF instructions). |
+| Path | Purpose |
+| --- | --- |
+| `oscadforge/oscadforge.py` | Pandoc-like CLI entrypoint (`python3 -m oscadforge.oscadforge …`). |
+| `oscadforge/core/*` | Engine, exporters, config utilities. |
+| `oscadforge/config/` | Model presets, layout blocks and export overrides expressed as YAML (e.g. `opengrid_papierkorb.yaml`). The CLI auto-searches this directory when you pass bare filenames. |
+| `in/Papierkorb/` | Project docs for the Papierkorb reference model (now SCAD-native). |
+| `oscadforge/docs/opengrid_2.md` | Notes for the OpenGrid-backed Papierkorb variant (panels + connectors imported from the QuackWorks/openGrid repos). |
+| `oscadforge/docs/concept_scad_to_step_dedup.md` | Concept: CSG hashing + STEP deduplication flow (no code). |
+| `third_party/BOSL2/` | Vendored [BOSL2](https://github.com/BelfrySCAD/BOSL2) OpenSCAD library (primitives, rounding, attachments). |
+| `third_party/jl_scad/` | Vendored [jl_scad](https://github.com/lijon/jl_scad) sources powering the Papierkorb shell. |
+| `out/` | Default artefact directory (SCAD/STL/PNG). |
+| `tests/` | Pytest suite covering CLI flows and geometry smoke tests. |
+| `in/opengrid_printables/` | Printables dumps (OpenGrid tiles, Multiconnect clips, mounting docs, etc.) for manual reference. |
+| `in/opengrid_angle/` | 90° OpenGrid angle connectors from Printables (`*_Nx.stl` plus PDF instructions). |
 
 ### OpenSCAD Library Path
 
@@ -210,7 +187,7 @@ fi
 python3 -m oscadforge.oscadforge \
   oscadforge/config/bus.yaml \
   oscadforge/config/panels.yaml \
-  oscadforge/templates/model_solar_bus.yaml \
+  oscadforge/config/model_solar_bus.yaml \
   oscadforge/config/export_bus.yaml
 ```
 
@@ -229,7 +206,7 @@ Need both the assembled Papierkorb and every flattened sheet in one go? Stack th
 
 ```
 python3 -m oscadforge.oscadforge \
-  oscadforge/templates/model_papierkorb.yaml \
+  oscadforge/config/model_papierkorb.yaml \
   oscadforge/config/printer_ultimaker2.yaml \
   oscadforge/config/layout_both.yaml \
   oscadforge/config/export_papierkorb_flat.yaml
@@ -296,21 +273,19 @@ Need larger tiles for a 256 × 256 × 256 mm build volume? The repo no
 ```
 # Papierkorb (JL shell)
 python3 -m oscadforge.oscadforge \
-  oscadforge/templates/model_papierkorb.yaml \
+  oscadforge/config/model_papierkorb.yaml \
   oscadforge/config/printer_bambulab_p1s.yaml \
   oscadforge/config/export_papierkorb_step_freecad.yaml
 
 # Papierkorb (OpenGrid 2 backend)
 python3 -m oscadforge.oscadforge \
-  oscadforge/templates/model_opengrid_2.yaml \
-  oscadforge/config/printer_bambulab_p1s_opengrid2.yaml \
-  oscadforge/config/export_opengrid2_step_freecad.yaml
+  oscadforge/config/model_opengrid_2.yaml \
+  oscadforge/config/printer_bambulab_p1s_opengrid2.yaml
 
 # Papierkorb (OpenGrid Full, kürzeres Layout)
 python3 -m oscadforge.oscadforge \
-  oscadforge/templates/model_opengrid-papierkorb.yaml \
-  oscadforge/config/printer_bambulab_p1s_opengrid2.yaml \
-  oscadforge/config/export_opengrid_papierkorb_step_freecad.yaml
+  oscadforge/config/model_opengrid-papierkorb.yaml \
+  oscadforge/config/printer_bambulab_p1s_opengrid2.yaml
 ```
 
 The printer configs bump `layout.bed_mm` to `[256, 256]` and clamp each tile to 248 mm so OpenGrid slices (and the JL shell panels) stay printable on the P1S while respecting the original Papierkorb dimensions.

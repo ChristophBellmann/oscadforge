@@ -1,0 +1,30 @@
+model:
+  name: papierkorb_tiles
+  params:
+    L_mm: 514.0
+    B_mm: 170.0
+    H_mm: 605.0
+    wall_mm: 3.6
+    max_tile_mm: 200.0
+    enable_rim: true
+    enable_honeycomb: false
+    enable_opengrid: true
+    opengrid_cell_mm: 24.0
+    opengrid_bar_mm: 3.2
+    opengrid_margin_mm: 12.0
+  layout:
+    mode: both
+    bed_mm:
+    - 200.0
+    - 200.0
+    spacing_mm: 6.0
+export:
+  output_dir: ./out/papierkorb/opengrid
+  basename: papierkorb_opengrid
+  scad: true
+  stl: false
+  png:
+    enabled: true
+    view: top
+printer:
+  name: ultimaker2

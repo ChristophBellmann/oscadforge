@@ -8,10 +8,10 @@ OUTPUT_BASE_DIR="out"
 
 # Entspricht: 
 
-# python3 -m oscadforge.oscadforge oscadforge/templates/model_opengrid-papierkorb-1_full.yaml oscadforge/config/export-to-stl.yaml && \
-# python3 -m oscadforge.oscadforge oscadforge/templates/model_opengrid-papierkorb-1_lite.yaml oscadforge/config/export-to-stl.yaml && \
-# python3 -m oscadforge.oscadforge oscadforge/templates/model_opengrid-papierkorb-2_full.yaml oscadforge/config/export-to-stl.yaml && \
-# python3 -m oscadforge.oscadforge oscadforge/templates/model_opengrid-papierkorb-2_lite.yaml oscadforge/config/export-to-stl.yaml
+# python3 -m oscadforge.oscadforge oscadforge/config/model_opengrid-papierkorb-1_full.yaml oscadforge/config/export-to-stl.yaml && \
+# python3 -m oscadforge.oscadforge oscadforge/config/model_opengrid-papierkorb-1_lite.yaml oscadforge/config/export-to-stl.yaml && \
+# python3 -m oscadforge.oscadforge oscadforge/config/model_opengrid-papierkorb-2_full.yaml oscadforge/config/export-to-stl.yaml && \
+# python3 -m oscadforge.oscadforge oscadforge/config/model_opengrid-papierkorb-2_lite.yaml oscadforge/config/export-to-stl.yaml
 
 # aber incl Berechnung der Maße mit admesh
 # braucht `sudo apt install admesh
@@ -34,13 +34,13 @@ PIDS=() # Array, um die Prozess-IDs (PIDs) zu speichern
 
 for model_name in "${MODELS[@]}"; do
     # Der Template-Dateiname hat das "model_" Präfix, die Ausgabe nicht.
-    TEMPLATE_FILE="templates/model_${model_name}.yaml"
+    MODEL_CONFIG="config/model_${model_name}.yaml"
     
-    echo "Starte Generierung von ${model_name} im Hintergrund mit Template ${TEMPLATE_FILE}..."
+    echo "Starte Generierung von ${model_name} im Hintergrund mit Config ${MODEL_CONFIG}..."
     
     # Führe den oscadforge Befehl aus und schicke ihn mit '&' in den Hintergrund
     # Wir übergeben den vollen Pfad zum Template und zur Config
-    python3 -m oscadforge "$TEMPLATE_FILE" "$CONFIG_FILE" &
+    python3 -m oscadforge "$MODEL_CONFIG" "$CONFIG_FILE" &
     
     # Speichere die PID (Process ID) des zuletzt gestarteten Hintergrundprozesses
     PIDS+=($!)
@@ -101,4 +101,3 @@ for model_name in "${MODELS[@]}"; do
 done
 
 echo "--- Prozess abgeschlossen ---"
-

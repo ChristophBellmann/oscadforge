@@ -1,7 +1,0 @@
-model:
-  params:
-    bin:
-      max_tile_mm: 256.0
-  layout:
-    bed_mm: [256.0, 256.0]
-    spacing_mm: 2.0

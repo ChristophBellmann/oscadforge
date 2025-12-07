@@ -16,7 +16,7 @@ Der Zweck dieses Ordners ist identisch mit `setup-strategy.md`:
 
 ```bash
 python3 -m oscadforge.oscadforge \
-  oscadforge/templates/model_papierkorb.yaml \
+  oscadforge/config/model_papierkorb.yaml \
   oscadforge/config/export_local.yaml
 ```
 
@@ -29,7 +29,7 @@ python3 -m oscadforge.oscadforge \
   oscadforge/config/battery.yaml \
   oscadforge/config/wiring.yaml \
   oscadforge/config/mounting.yaml \
-  oscadforge/templates/model_solar_bus.yaml \
+  oscadforge/config/model_solar_bus.yaml \
   oscadforge/config/export_bus.yaml
 ```
 

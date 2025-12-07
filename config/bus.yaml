@@ -1,5 +1,0 @@
-bus:
-  length_mm: 6000
-  width_mm: 2000
-  roof_shape: flat
-  margin_edge_mm: 50

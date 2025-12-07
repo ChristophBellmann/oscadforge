@@ -20,12 +20,13 @@ All of the above assets are CC BY-NC-SA; we merely parameterise them through the
 1. Run the new model:
    ```bash
    python3 -m oscadforge.oscadforge \
-     oscadforge/templates/model_opengrid_2.yaml
+     oscadforge/config/model_opengrid_2.yaml
    ```
    Für die gekürzte OpenGrid-Full-Variante tausche das Modellyaml einfach gegen
-   `oscadforge/templates/model_opengrid-papierkorb.yaml` aus. STEP/PNG-Runs
-   verwenden dann zusätzlich `oscadforge/config/export_opengrid_papierkorb_step_freecad.yaml`
-   (Ausgabe: `out/opengrid_papierkorb_freecad/`).
+   `oscadforge/config/model_opengrid-papierkorb.yaml` aus. Der Export
+   liefert STEP/PNG direkt unter `out/opengrid_papierkorb_freecad/`; wenn du nur
+   SCAD/PNG brauchst, setze `export.step: false` (z. B. via Inline-Override) und
+   starte denselben Befehl erneut.
 2. The CLI snaps the requested Papierkorb dimensions to the closest OpenGrid multiple of the
    configured tile size (default 28 mm). This guarantees that every seam lands on an actual
    OpenGrid connector line.

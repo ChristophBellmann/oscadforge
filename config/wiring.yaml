@@ -1,4 +1,0 @@
-wiring:
-  entry_point: rear_left
-  cable_routing: shortest
-  show_cables: false

@@ -1,0 +1,9 @@
+model:
+  layout:
+    mode: assembled
+    bed_mm:
+    - 200.0
+    - 200.0
+    spacing_mm: 6.0
+printer:
+  name: ultimaker2

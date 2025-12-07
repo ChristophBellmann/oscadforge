@@ -1,0 +1,19 @@
+meta:
+  description: 'Dachbaugruppe für das Solar-Bus-Projekt: erzeugt Träger, Paneele und
+    Kabelpfade inkl. optionaler Anzeige der Montagepunkte.
+
+    '
+model:
+  name: solar_bus_roof
+  params:
+    panel_gap_mm: 60
+    mounting_show: true
+    cable_show: true
+    cable_entry: rear_left
+  layout:
+    bed_mm:
+    - 200.0
+    - 200.0
+    spacing_mm: 6.0
+printer:
+  name: ultimaker2
