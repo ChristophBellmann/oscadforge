@@ -22,6 +22,7 @@ from .connectors import ConnectorPlan, plan_connectors
 from .panels import OpenGridPanelSet, build_panels
 from .params import OpenGrid2Params
 from .scad_writer import (
+    BeamPlacementMode,
     IncludePaths,
     build_scad_for_artifact,
     build_scad_for_panel,
@@ -38,6 +39,7 @@ class LayoutArtifact:
     placements: Iterable[PanelPlacement]
     preview_prisms: List[RectPrismSpec]
     is_connector_sheet: bool = False
+    beam_mode: BeamPlacementMode = BeamPlacementMode.PANEL_ONLY
 
 
 @dataclass
@@ -126,6 +128,7 @@ def build(context: BuildContext) -> EngineResult:
             connector_opts=params.connectors if artifact.is_connector_sheet else None,
             includes=includes,
             include_preview_imports=include_preview_imports,
+            beam_mode=artifact.beam_mode,
         )
         scad_path.write_text(scad_text, encoding="utf-8")
         if scad_primary is None:
@@ -311,6 +314,7 @@ def _build_artifacts(
                 basename=basename,
                 placements=plan.assembled,
                 preview_prisms=_assembled_preview_prisms(panel_set),
+                beam_mode=BeamPlacementMode.BOTH,
             )
         )
 
@@ -322,6 +326,15 @@ def _build_artifacts(
                     basename=f"{basename}_{sheet.name}",
                     placements=sheet.placements,
                     preview_prisms=_sheet_preview_prisms(sheet, panel_set),
+                )
+            )
+            artifacts.append(
+                LayoutArtifact(
+                    label=f"{sheet.name}_beam",
+                    basename=f"{basename}_{sheet.name}_beam",
+                    placements=sheet.placements,
+                    preview_prisms=_sheet_preview_prisms(sheet, panel_set),
+                    beam_mode=BeamPlacementMode.BEAM_ONLY,
                 )
             )
 
@@ -390,11 +403,13 @@ def _connector_preview(panel_set: OpenGridPanelSet) -> List[RectPrismSpec]:
 def _resolve_includes(out_dir: Path) -> IncludePaths:
     bosl2 = REPO_ROOT / "third_party" / "BOSL2" / "std.scad"
     open_grid = REPO_ROOT / "third_party" / "QuackWorks" / "openGrid" / "openGrid.scad"
+    open_grid_beam = REPO_ROOT / "third_party" / "QuackWorks" / "openGrid" / "openGrid-beam.scad"
     snap = REPO_ROOT / "third_party" / "QuackWorks" / "openGrid" / "opengrid-snap.scad"
     angle = REPO_ROOT / "in" / "opengrid_angle" / "1-1_1x.stl"
     return IncludePaths(
         bosl2=_relpath(bosl2, out_dir),
         open_grid=_relpath(open_grid, out_dir),
+        open_grid_beam=_relpath(open_grid_beam, out_dir),
         snap=_relpath(snap, out_dir),
         angle_connector=_relpath(angle, out_dir),
     )
