@@ -35,9 +35,32 @@ All of the above assets are CC BY-NC-SA; we merely parameterise them through the
 4. Layout output:
    - `*_assembled.scad` — assembled Papierkorb with OpenGrid tiles.
    - `*_sheetNN.scad` — flattened tiles that stay within the chosen bed (default 200×200 mm).
-  - `*_connectors.scad` — accessory sheet containing the required straight snaps plus
-    simple 90° corner sleeves sized to the OpenGrid pitch (swap in your preferred
-    Monokini/Underware design later if you need the exact ecosystem geometry).
+   - `*_sheetNN_beam.scad` — matching beam-only preview for each flat sheet.
+   - `*_connectors.scad` — accessory sheet containing the required straight snaps plus
+     simple 90° corner sleeves sized to the OpenGrid pitch (swap in your preferred
+     Monokini/Underware design later if you need the exact ecosystem geometry).
+
+## Combined sheet / beam exports
+
+The beam variant can optionally emit two extra SCADs that aggregate every sheet or every
+beam placement. The `oscadforge/config/opengrid_beam_papierkorb.yaml` preset already
+enables them and keeps the assembled geometry via the `combined` mode:
+
+```yaml
+layout:
+  combined_sheets: true
+  combined_beams: true
+  sheet_combined_mode: combined
+  beam_combined_mode: combined
+```
+
+`combined_sheets` writes `opengrid-beam_papierkorb_sheet.scad` with the union of all
+panels. `combined_beams` writes `opengrid-beam_papierkorb_beam.scad`, which contains the beam-only
+modules that correspond to the assembled bin. When `*_combined_mode` is `combined` (or the
+legacy name `assembled`) the aggregated file reuses the fully assembled coordinates. Switch the
+mode back to `flat` if you instead need the union to sit on the printer bed layout.
+
+Disable either toggle if you only want the individual `sheetNN` / `sheetNN_beam` pairs.
 
 ## Parameters
 

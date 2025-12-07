@@ -108,6 +108,14 @@ def _build_header(includes: IncludePaths, board: BoardOptions) -> str:
         f"Connector_Holes_Top = {bool_val(board.connector_holes)};\n"
         f"Connector_Holes_Left = {bool_val(board.connector_holes)};\n"
         f"Connector_Holes_Right = {bool_val(board.connector_holes)};\n"
+        "Boardconnector_Bottom_l = true;\n"
+        "Boardconnector_Bottom_r = true;\n"
+        "Boardconnector_Left_l = true;\n"
+        "Boardconnector_Left_r = true;\n"
+        "Boardconnector_Top_l = true;\n"
+        "Boardconnector_Top_r = true;\n"
+        "Boardconnector_Right_l = true;\n"
+        "Boardconnector_Right_r = true;\n"
     )
 
 
@@ -161,15 +169,6 @@ def _beam_call(cells_u: int, cells_v: int, thickness: float, board: BoardOptions
         f"    Beam_Top                = {sides_val},",
         f"    Beam_Right              = {sides_val},",
         "",
-        "    // Board Connector Options",
-        "    Boardconnector_Bottom_l = true,",
-        "    Boardconnector_Bottom_r = true,",
-        "    Boardconnector_Left_l   = true,",
-        "    Boardconnector_Left_r   = true,",
-        "    Boardconnector_Top_l    = true,",
-        "    Boardconnector_Top_r    = true,",
-        "    Boardconnector_Right_l  = true,",
-        "    Boardconnector_Right_r  = true,",
         "",
         "    // Beam Connector Options",
         "    Beamconnector_Bottom_l  = true,",

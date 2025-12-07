@@ -347,11 +347,9 @@ def _build_artifacts(
                     beam_mode=BeamPlacementMode.BEAM_ONLY,
                 )
             )
-        if plan.flat_sheets:
-            combined_placements: list[PanelPlacement] = []
-            for sheet in plan.flat_sheets:
-                combined_placements.extend(sheet.placements)
-            preview = _sheet_preview_prisms(plan.flat_sheets[0], panel_set)
+        if plan.flat_sheets or layout_cfg.sheet_combined_mode == "assembled":
+            combined_placements = _combined_placements(plan, layout_cfg.sheet_combined_mode)
+            preview = _preview_for_mode(plan, panel_set, layout_cfg.sheet_combined_mode)
             if layout_cfg.combined_sheets:
                 artifacts.append(
                     LayoutArtifact(
@@ -363,12 +361,14 @@ def _build_artifacts(
                     )
                 )
             if layout_cfg.combined_beams:
+                beam_placements = _combined_placements(plan, layout_cfg.beam_combined_mode)
+                beam_preview = _preview_for_mode(plan, panel_set, layout_cfg.beam_combined_mode)
                 artifacts.append(
                     LayoutArtifact(
                         label="beam",
                         basename=f"{basename}_beam",
-                        placements=combined_placements,
-                        preview_prisms=preview,
+                        placements=beam_placements,
+                        preview_prisms=beam_preview,
                         beam_mode=BeamPlacementMode.BEAM_ONLY,
                     )
                 )
@@ -417,6 +417,21 @@ def _sheet_preview_prisms(sheet, panel_set: OpenGridPanelSet) -> List[RectPrismS
             color=(180, 180, 180),
         )
     ]
+
+
+def _combined_placements(plan: layout_builder.LayoutPlan, mode: str) -> List[PanelPlacement]:
+    if mode == "assembled" or not plan.flat_sheets:
+        return list(plan.assembled)
+    combined: List[PanelPlacement] = []
+    for sheet in plan.flat_sheets:
+        combined.extend(sheet.placements)
+    return combined
+
+
+def _preview_for_mode(plan: layout_builder.LayoutPlan, panel_set: OpenGridPanelSet, mode: str) -> List[RectPrismSpec]:
+    if mode == "assembled" or not plan.flat_sheets:
+        return _assembled_preview_prisms(panel_set)
+    return _sheet_preview_prisms(plan.flat_sheets[0], panel_set)
 
 
 def _connector_preview(panel_set: OpenGridPanelSet) -> List[RectPrismSpec]:
@@ -576,9 +591,21 @@ def _extract_layout_cfg(context: BuildContext) -> LayoutConfig:
     spacing = float(section.get("spacing_mm", 6.0))
     combined_sheets = bool(section.get("combined_sheets", True))
     combined_beams = bool(section.get("combined_beams", True))
+    sheet_mode = str(section.get("sheet_combined_mode", "flat")).lower()
+    if sheet_mode not in {"flat", "assembled", "combined"}:
+        sheet_mode = "flat"
+    if sheet_mode == "combined":
+        sheet_mode = "assembled"
+    beam_mode = str(section.get("beam_combined_mode", "flat")).lower()
+    if beam_mode not in {"flat", "assembled", "combined"}:
+        beam_mode = "flat"
+    if beam_mode == "combined":
+        beam_mode = "assembled"
     return LayoutConfig(
         bed_size_mm=bed_tuple,
         spacing_mm=spacing,
         combined_sheets=combined_sheets,
         combined_beams=combined_beams,
+        sheet_combined_mode=sheet_mode,
+        beam_combined_mode=beam_mode,
     )

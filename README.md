@@ -51,6 +51,32 @@ python3 -m oscadforge.oscadforge \
   oscadforge/config/opengrid_papierkorb.yaml \
   oscadforge/config/opengrid_beam_papierkorb.yaml
 
+# Beam layout toggles
+
+The beam backend emits both the assembled bin and the flattened panels/beams.
+`layout.combined_sheets`/`layout.combined_beams` toggle whether the engine also
+writes `opengrid-beam_papierkorb_sheet.scad` and
+`opengrid-beam_papierkorb_beam.scad`. The `_combined_mode` flags control the
+placement coordinates for those aggregated files:
+
+```yaml
+layout:
+  combined_sheets: true
+  combined_beams: true
+  sheet_combined_mode: flat    # "flat" keeps the panels on the printer bed layout
+  beam_combined_mode: combined # "combined" / "assembled" reuses the assembled bin coordinates
+```
+
+Only panels appear inside the `_sheet.scad` file, while the `_beam.scad` variant
+houses the beam-only modules (`BeamPlacementMode.BEAM_ONLY`). The per-sheet
+exports (`*_sheetNN.scad`/`*_sheetNN_beam.scad`) still provide the combined
+preview for each sheet, so you can toggle the aggregated artifacts without
+losing individual layouts.
+
+Set `sheet_combined_mode` or `beam_combined_mode` to `combined` (an alias for
+`assembled`) when you want the aggregated SCAD to preserve the assembled bin
+coordinates instead of the flattened bed arrangement.
+
 # Merge custom overrides on top of the base config
 python3 -m oscadforge.oscadforge \
   oscadforge/config/opengrid_papierkorb.yaml \

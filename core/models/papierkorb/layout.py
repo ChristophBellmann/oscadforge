@@ -12,6 +12,8 @@ class LayoutConfig:
     spacing_mm: float = 6.0
     combined_sheets: bool = True
     combined_beams: bool = True
+    sheet_combined_mode: str = "flat"
+    beam_combined_mode: str = "flat"
 
 
 @dataclass

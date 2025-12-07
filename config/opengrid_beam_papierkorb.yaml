@@ -32,6 +32,8 @@ model:
     mode: both
     combined_sheets: true
     combined_beams: true
+    sheet_combined_mode: assembled # flat
+    beam_combined_mode: assembled # flat
     # Uncomment to tweak the flattened layout:
     # bed_mm:
     #   - 200.0
