@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Iterable, Sequence
+import colorsys
+import re
+from typing import Iterable, Mapping, Sequence
 
 from ..papierkorb.layout import PanelPlacement
 from ..papierkorb.panels import AxisDirection, Panel, PanelFeature, PanelKind
@@ -66,6 +68,7 @@ def build_scad_for_artifact(
         body = _connectors_body(connectors, board, connector_opts, includes.angle_connector)
         return f"{header}\n{body}\nconnectors_artifact();\n"
     panel_modules = _panel_modules(panel_set, board)
+    color_defs, color_map = _build_panel_color_modules(panel_set)
     placement_block = _placement_block(
         artifact_label,
         placements,
@@ -74,8 +77,16 @@ def build_scad_for_artifact(
         panel_set,
         include_preview_imports=include_preview_imports,
         beam_mode=beam_mode,
+        color_map=color_map,
     )
-    return f"{header}\n{panel_modules}\n{placement_block}\nartifact_{artifact_label}();\n"
+    sections = [header]
+    if panel_modules:
+        sections.append(panel_modules)
+    if color_defs:
+        sections.append(color_defs)
+    sections.append(placement_block)
+    sections.append(f"artifact_{artifact_label}();")
+    return "\n\n".join(sections) + "\n"
 
 
 def build_scad_for_panel(
@@ -214,6 +225,40 @@ def _beam_call(cells_u: int, cells_v: int, thickness: float, board: BoardOptions
     return "\n".join(lines)
 
 
+def _build_panel_color_modules(panel_set: OpenGridPanelSet) -> tuple[str, dict[str, str]]:
+    panels = sorted(panel_set.panels, key=lambda panel: panel.panel_id)
+    if not panels:
+        return "", {}
+    modules: list[str] = []
+    mapping: dict[str, str] = {}
+    total = len(panels)
+    for idx, panel in enumerate(panels):
+        module_name = f"panel_color_{_sanitize_id(panel.panel_id)}"
+        mapping[panel.panel_id] = module_name
+        r, g, b = _rainbow_color(idx, total)
+        modules.append(
+            f"module {module_name}() {{\n"
+            f"  color([{r:.3f}, {g:.3f}, {b:.3f}]) children();\n"
+            f"}}"
+        )
+    return "\n\n".join(modules), mapping
+
+
+def _sanitize_id(value: str) -> str:
+    cleaned = re.sub(r"[^A-Za-z0-9_]", "_", value)
+    if not cleaned:
+        return "panel"
+    return cleaned if not cleaned[0].isdigit() else f"_{cleaned}"
+
+
+def _rainbow_color(index: int, total: int) -> tuple[float, float, float]:
+    if total <= 0:
+        return 0.5, 0.5, 0.5
+    hue = (index / total) % 1.0
+    r, g, b = colorsys.hsv_to_rgb(hue, 0.75, 0.95)
+    return r, g, b
+
+
 def _beam_config_for_panel(panel: Panel, central_ids: set[str]) -> BeamCallConfig:
     if panel.panel_id in central_ids:
         return BeamCallConfig(enable_beam_sides=False, enable_chamfers=False, enable_joints=False)
@@ -264,19 +309,29 @@ def _placement_block(
     panel_set: OpenGridPanelSet,
     include_preview_imports: bool = True,
     beam_mode: BeamPlacementMode = BeamPlacementMode.PANEL_ONLY,
+    color_map: Mapping[str, str] | None = None,
 ) -> str:
+    color_map = color_map or {}
     statements = []
     for placement in placements:
         matrix = placement_matrix(placement)
         transform = _format_matrix(matrix)
-        colour = _panel_colour(placement.panel.panel_id)
         module_names: list[str] = []
         if beam_mode in (BeamPlacementMode.PANEL_ONLY, BeamPlacementMode.BOTH):
             module_names.append(placement.panel.panel_id)
         if beam_mode in (BeamPlacementMode.BEAM_ONLY, BeamPlacementMode.BOTH):
             module_names.append(_beam_panel_id(placement.panel.panel_id))
         for module_id in module_names:
-            statements.append(f"    {colour} multmatrix({transform}) panel_geom_{module_id}();")
+            col_module = color_map.get(placement.panel.panel_id) if color_map else None
+            if col_module:
+                statements.append(
+                    f"    {col_module}() {{\n"
+                    f"      multmatrix({transform}) panel_geom_{module_id}();\n"
+                    f"    }}"
+                )
+            else:
+                colour = _panel_colour(placement.panel.panel_id)
+                statements.append(f"    {colour} multmatrix({transform}) panel_geom_{module_id}();")
     body = "\n".join(statements) if statements else "    // no panels"
     accessories = _imported_angle_connectors(board, panel_set, label, include_preview_imports)
     return f"module artifact_{label}() {{\n  union() {{\n{body}{accessories}\n  }}\n}}\n"
