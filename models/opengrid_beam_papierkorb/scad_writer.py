@@ -154,8 +154,6 @@ def _beam_call(cells_u: int, cells_v: int, thickness: float, board: BoardOptions
         "    openGridbeam(",
         f"    Board_Width             = {cells_u},",
         f"    Board_Height            = {cells_v},",
-        f"    tileSize                = {board.tile_size_mm:.4f},",
-        f"    Tile_Thickness          = {thickness:.4f},",
         "",
         "    // Beam-Sides",
         f"    Beam_Bottom             = {sides_val},",

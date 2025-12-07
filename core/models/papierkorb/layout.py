@@ -10,6 +10,8 @@ from .panels import Panel, PanelAxes, AxisDirection, PanelKind, Vec3
 class LayoutConfig:
     bed_size_mm: Tuple[float, float] = (200.0, 200.0)
     spacing_mm: float = 6.0
+    combined_sheets: bool = True
+    combined_beams: bool = True
 
 
 @dataclass

@@ -54,8 +54,8 @@ export:
   freecad_bin: freecadcmd
   freecad_mesh_tolerance: 0.15
   png:
-    enabled: true
-    viewall: true
+    enabled: false
+    viewall: false
     imgsize: [2400, 1800]
   openscad_bin: openscad
 

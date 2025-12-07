@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import os
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Mapping
+from typing import Any, Dict, Iterable, List, Mapping, Sequence, Tuple
 
 from ...engine import BuildContext, EngineResult
 from ...export import (
@@ -67,7 +68,7 @@ def build(context: BuildContext) -> EngineResult:
     if not params.connectors.generate_connectors:
         connector_plan = ConnectorPlan(snap_count=0, corner_count=0)
 
-    artifacts = _build_artifacts(plan, context, panel_set, connector_plan)
+    artifacts = _build_artifacts(plan, context, panel_set, connector_plan, layout_cfg)
     if not artifacts:
         raise ValueError("no layout artifacts produced; check layout.mode configuration")
 
@@ -85,6 +86,7 @@ def build(context: BuildContext) -> EngineResult:
     artifact_records: List[Dict[str, Any]] = []
     artifact_record_map: Dict[str, Dict[str, Any]] = {}
     panel_step_sources: Dict[str, Path] = {}
+    png_tasks: List[PNGExportTask] = []
 
     includes = _resolve_includes(context.out_dir)
 
@@ -116,20 +118,22 @@ def build(context: BuildContext) -> EngineResult:
                 )
             )
 
-    for artifact in artifacts:
-        placements = list(artifact.placements)
+    artifact_inputs = [(artifact, list(artifact.placements)) for artifact in artifacts]
+    rendered_artifacts = _render_artifacts_concurrently(
+        artifact_inputs,
+        panel_set,
+        params.board,
+        connector_plan,
+        params.connectors,
+        includes,
+        include_preview_imports,
+    )
+
+    for rendered in rendered_artifacts:
+        artifact = rendered.artifact
+        placements = rendered.placements
+        scad_text = rendered.scad_text
         scad_path = context.out_dir / f"{artifact.basename}.scad"
-        scad_text = build_scad_for_artifact(
-            artifact_label=artifact.label,
-            placements=placements,
-            panel_set=panel_set,
-            board=params.board,
-            connectors=connector_plan if artifact.is_connector_sheet else None,
-            connector_opts=params.connectors if artifact.is_connector_sheet else None,
-            includes=includes,
-            include_preview_imports=include_preview_imports,
-            beam_mode=artifact.beam_mode,
-        )
         scad_path.write_text(scad_text, encoding="utf-8")
         if scad_primary is None:
             scad_primary = scad_path
@@ -168,15 +172,16 @@ def build(context: BuildContext) -> EngineResult:
 
         if png_enabled:
             png_path = context.out_dir / f"{artifact.basename}.png"
-            try:
-                run_openscad(scad_path, png_path, context.openscad_bin, png_args)
-            except ExportError as exc:
-                render_isometric_preview(artifact.preview_prisms, png_path)
-                logs.append(f"PNG fallback rendered to {png_path} ({exc})")
-            else:
-                logs.append(f"PNG written to {png_path}")
             png_paths.append(png_path)
             artifact_png = png_path
+            png_tasks.append(
+                PNGExportTask(
+                    scad_path=scad_path,
+                    png_path=png_path,
+                    preview_prisms=artifact.preview_prisms,
+                    png_args=png_args,
+                )
+            )
 
         record = {
             "label": artifact.label,
@@ -217,6 +222,10 @@ def build(context: BuildContext) -> EngineResult:
                 )
             else:
                 logs.append(f"STEP written to {step_result.step_path}")
+
+    if png_enabled and png_tasks:
+        png_logs = _run_png_tasks_concurrently(png_tasks, context.openscad_bin)
+        logs.extend(png_logs)
 
     if assembly_plan and context.export.get("step") and panel_assembly_enabled:
         try:
@@ -301,6 +310,7 @@ def _build_artifacts(
     context: BuildContext,
     panel_set: OpenGridPanelSet,
     connector_plan: ConnectorPlan,
+    layout_cfg: LayoutConfig,
 ) -> List[LayoutArtifact]:
     section = _extract_layout_section(context)
     mode = _layout_mode(section)
@@ -337,6 +347,31 @@ def _build_artifacts(
                     beam_mode=BeamPlacementMode.BEAM_ONLY,
                 )
             )
+        if plan.flat_sheets:
+            combined_placements: list[PanelPlacement] = []
+            for sheet in plan.flat_sheets:
+                combined_placements.extend(sheet.placements)
+            preview = _sheet_preview_prisms(plan.flat_sheets[0], panel_set)
+            if layout_cfg.combined_sheets:
+                artifacts.append(
+                    LayoutArtifact(
+                        label="sheet",
+                        basename=f"{basename}_sheet",
+                        placements=combined_placements,
+                        preview_prisms=preview,
+                        beam_mode=BeamPlacementMode.PANEL_ONLY,
+                    )
+                )
+            if layout_cfg.combined_beams:
+                artifacts.append(
+                    LayoutArtifact(
+                        label="beam",
+                        basename=f"{basename}_beam",
+                        placements=combined_placements,
+                        preview_prisms=preview,
+                        beam_mode=BeamPlacementMode.BEAM_ONLY,
+                    )
+                )
 
     if connector_plan.snap_count or connector_plan.corner_count:
         artifacts.append(
@@ -400,6 +435,98 @@ def _connector_preview(panel_set: OpenGridPanelSet) -> List[RectPrismSpec]:
     ]
 
 
+@dataclass
+class RenderedArtifact:
+    artifact: LayoutArtifact
+    placements: List[PanelPlacement]
+    scad_text: str
+
+
+def _render_artifacts_concurrently(
+    inputs: list[tuple[LayoutArtifact, list[PanelPlacement]]],
+    panel_set: OpenGridPanelSet,
+    board: BoardOptions,
+    connector_plan: ConnectorPlan,
+    connector_opts: ConnectorOptions,
+    includes: IncludePaths,
+    include_preview_imports: bool,
+) -> list[RenderedArtifact]:
+    max_workers = max(1, min(32, os.cpu_count() or 1))
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = []
+        for artifact, placements in inputs:
+            connectors = connector_plan if artifact.is_connector_sheet else None
+            connector_options = connector_opts if artifact.is_connector_sheet else None
+            futures.append(
+                executor.submit(
+                    _build_artifact_scad_text,
+                    artifact,
+                    placements,
+                    panel_set,
+                    board,
+                    connectors,
+                    connector_options,
+                    includes,
+                    include_preview_imports,
+                )
+            )
+    return [future.result() for future in futures]
+
+
+def _build_artifact_scad_text(
+    artifact: LayoutArtifact,
+    placements: list[PanelPlacement],
+    panel_set: OpenGridPanelSet,
+    board: BoardOptions,
+    connectors: ConnectorPlan | None,
+    connector_opts: ConnectorOptions | None,
+    includes: IncludePaths,
+    include_preview_imports: bool,
+) -> RenderedArtifact:
+        scad_text = build_scad_for_artifact(
+            artifact_label=artifact.label,
+            placements=placements,
+            panel_set=panel_set,
+            board=board,
+            connectors=connectors,
+            connector_opts=connector_opts,
+            includes=includes,
+            include_preview_imports=include_preview_imports,
+            beam_mode=artifact.beam_mode,
+        )
+        return RenderedArtifact(artifact=artifact, placements=placements, scad_text=scad_text)
+
+
+@dataclass
+class PNGExportTask:
+    scad_path: Path
+    png_path: Path
+    preview_prisms: List[RectPrismSpec]
+    png_args: Sequence[str]
+
+
+def _run_png_tasks_concurrently(tasks: List[PNGExportTask], openscad_bin: str | None) -> List[str]:
+    if not tasks:
+        return []
+    max_workers = max(1, min(16, os.cpu_count() or 1))
+    logs: List[str] = []
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = [executor.submit(_run_single_png_task, task, openscad_bin) for task in tasks]
+        for future in futures:
+            logs.extend(future.result())
+    return logs
+
+
+def _run_single_png_task(task: PNGExportTask, openscad_bin: str | None) -> List[str]:
+    try:
+        run_openscad(task.scad_path, task.png_path, openscad_bin, task.png_args)
+    except ExportError as exc:
+        render_isometric_preview(task.preview_prisms, task.png_path)
+        return [f"PNG fallback rendered to {task.png_path} ({exc})"]
+    else:
+        return [f"PNG written to {task.png_path}"]
+
+
 def _resolve_includes(out_dir: Path) -> IncludePaths:
     bosl2 = REPO_ROOT / "third_party" / "BOSL2" / "std.scad"
     open_grid = REPO_ROOT / "third_party" / "QuackWorks" / "openGrid" / "openGrid.scad"
@@ -447,4 +574,11 @@ def _extract_layout_cfg(context: BuildContext) -> LayoutConfig:
     else:
         bed_tuple = (200.0, 200.0)
     spacing = float(section.get("spacing_mm", 6.0))
-    return LayoutConfig(bed_size_mm=bed_tuple, spacing_mm=spacing)
+    combined_sheets = bool(section.get("combined_sheets", True))
+    combined_beams = bool(section.get("combined_beams", True))
+    return LayoutConfig(
+        bed_size_mm=bed_tuple,
+        spacing_mm=spacing,
+        combined_sheets=combined_sheets,
+        combined_beams=combined_beams,
+    )
