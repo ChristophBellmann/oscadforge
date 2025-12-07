@@ -13,7 +13,7 @@ David D., Hands on Katie, and the QuackWorks contributors.
 - **Printables archive:** `in/opengrid_printables/...` keeps the STEP/3MF references that shipped with the
   original Printables release for cross-checking hole placement.
 
-All of the above assets are CC BY-NC-SA; we merely parameterise them through the oscadforge CLI. This backend is implemented in `oscadforge/core/models/opengrid_papierkorb` (previously named `opengrid_2`), and the CLI exposes the same builder under `opengrid_papierkorb` so existing configs keep working.
+All of the above assets are CC BY-NC-SA; we merely parameterise them through the oscadforge CLI. This backend is implemented in `oscadforge/core/models/opengrid_papierkorb` (previously named `opengrid_2`), and the CLI exposes the same builder under `opengrid_papierkorb` and the new `opengrid-beam_papierkorb` alias (see `oscadforge/config/opengrid_beam_papierkorb.yaml`).
 
 ## Workflow Summary
 

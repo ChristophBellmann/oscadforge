@@ -37,13 +37,20 @@ class BuildContext:
 
 
 def _ensure_registry():
-    from .models import opengrid_papierkorb, papierkorb, solar_bus
+    from .models import (
+        opengrid_papierkorb,
+        opengrid_beam_papierkorb,
+        papierkorb,
+        solar_bus,
+    )
 
     return {
         "papierkorb_tiles": papierkorb.build,
         "solar_bus_roof": solar_bus.build,
         "opengrid_2": opengrid_papierkorb.build,
         "opengrid_papierkorb": opengrid_papierkorb.build,
+        "opengrid-beam_papierkorb": opengrid_beam_papierkorb.build,
+        "opengrid_beam_papierkorb": opengrid_beam_papierkorb.build,
     }
 
 

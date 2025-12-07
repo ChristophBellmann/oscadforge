@@ -25,9 +25,9 @@ python3 -m oscadforge.oscadforge --list
 example output:  
   
   Engine models registered in oscadforge:
+  - opengrid-beam_papierkorb
   - opengrid_papierkorb
   - opengrid_2
-  - opengrid_papierkorb
   - papierkorb_tiles
   - solar_bus_roof
 
@@ -45,6 +45,11 @@ python3 -m oscadforge.oscadforge -l
 # Run the OpenGrid Papierkorb config
 python3 -m oscadforge.oscadforge \
   oscadforge/config/opengrid_papierkorb.yaml
+
+# OpenGrid beam variant (same parameters, different model name)
+python3 -m oscadforge.oscadforge \
+  oscadforge/config/opengrid_papierkorb.yaml \
+  oscadforge/config/opengrid_beam_papierkorb.yaml
 
 # Merge custom overrides on top of the base config
 python3 -m oscadforge.oscadforge \

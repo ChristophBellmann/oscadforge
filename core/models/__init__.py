@@ -1,5 +1,5 @@
 """Model registry implementations."""
 
-from . import papierkorb, solar_bus
+from . import opengrid_papierkorb, opengrid_beam_papierkorb, papierkorb, solar_bus
 
-__all__ = ["papierkorb", "solar_bus"]
+__all__ = ["opengrid_papierkorb", "opengrid_beam_papierkorb", "papierkorb", "solar_bus"]
