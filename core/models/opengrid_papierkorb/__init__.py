@@ -262,7 +262,7 @@ def build(context: BuildContext) -> EngineResult:
                 logs.append(f"STEP written to {fallback.step_path}")
 
     meta = {
-        "model": "opengrid_2",
+        "model": "opengrid_papierkorb",
         "dimensions_mm": {
             "length": panel_set.length_mm,
             "width": panel_set.width_mm,

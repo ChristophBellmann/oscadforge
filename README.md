@@ -25,6 +25,7 @@ python3 -m oscadforge.oscadforge --list
 example output:  
   
   Engine models registered in oscadforge:
+  - opengrid_papierkorb
   - opengrid_2
   - opengrid_papierkorb
   - papierkorb_tiles
@@ -135,7 +136,7 @@ Need to keep large YAML runs manageable? Enable the STEP dedup cache: `export.st
 | `oscadforge/core/*` | Engine, exporters, config utilities. |
 | `oscadforge/config/` | Model presets, layout blocks and export overrides expressed as YAML (e.g. `opengrid_papierkorb.yaml`). The CLI auto-searches this directory when you pass bare filenames. |
 | `in/Papierkorb/` | Project docs for the Papierkorb reference model (now SCAD-native). |
-| `oscadforge/docs/opengrid_2.md` | Notes for the OpenGrid-backed Papierkorb variant (panels + connectors imported from the QuackWorks/openGrid repos). |
+| `oscadforge/docs/opengrid_papierkorb.md` | Notes for the OpenGrid-backed Papierkorb variant (panels + connectors imported from the QuackWorks/openGrid repos). |
 | `oscadforge/docs/concept_scad_to_step_dedup.md` | Concept: CSG hashing + STEP deduplication flow (no code). |
 | `third_party/BOSL2/` | Vendored [BOSL2](https://github.com/BelfrySCAD/BOSL2) OpenSCAD library (primitives, rounding, attachments). |
 | `third_party/jl_scad/` | Vendored [jl_scad](https://github.com/lijon/jl_scad) sources powering the Papierkorb shell. |
@@ -252,7 +253,7 @@ Split this across as many files as you like — the CLI deep-merges everything i
 
 When `step_backend: freecad` is enabled the CLI first emits an STL (reusing the one you already requested, if any) and then runs the FreeCAD CLI specified via `freecad_bin` to convert it into STEP. `freecad_mesh_tolerance` tweaks the `Part.Shape.makeShapeFromMesh` tolerance (in mm); the default of `0.1` works well for the Papierkorb scale, but bump it up slightly for noisier meshes.\
 Prefer the exact OpenSCAD → CSG → FreeCAD path? Use `step_backend: freecad_csg` instead — the CLI tells OpenSCAD to export `.csg`, pipes that into FreeCAD’s OpenSCAD importer (headless), and exports a union of all resulting solids as STEP so downstream CAD (SolidWorks, etc.) sees the same parametric bodies you would get from a manual FreeCAD import. See `oscadforge/config/export_papierkorb_step_freecad_dedup.yaml` for a preset that keeps SCAD/STL output, runs FreeCAD on the CSG tree, and deduplicates identical geometries under `out/.step_cache_freecad/`. We keep a user-writable copy of `/usr/share/freecad/Mod/OpenSCAD` under `~/.local/freecad_mods/Mod`, and the exporter automatically prepends it to `PYTHONPATH` so FreeCAD can generate its `parsetab.py` without touching `/usr/share`.\
-Need both worlds? Set `step_backend: freecad_auto` — the exporter inspects the generated SCAD: if it references external STLs it routes that artifact through the classic STL → STEP converter, otherwise it emits a `.csg` and lets FreeCAD’s OpenSCAD importer create the solid. Should FreeCAD choke on the CSG (huge tree, missing modules), the exporter automatically falls back to STL conversion for that artifact. Assemblies such as `opengrid_2` go a step further: every unique panel geometry is exported once as a planar STEP, and the final `opengrid2_freecad.step` gets assembled by FreeCAD in seconds by instantiating those panels with the placement matrices embedded in the SCAD. No more 55 MB STL → STEP runs for the full bin, while the sheet-level STEP exports stay untouched.\
+Need both worlds? Set `step_backend: freecad_auto` — the exporter inspects the generated SCAD: if it references external STLs it routes that artifact through the classic STL → STEP converter, otherwise it emits a `.csg` and lets FreeCAD’s OpenSCAD importer create the solid. Should FreeCAD choke on the CSG (huge tree, missing modules), the exporter automatically falls back to STL conversion for that artifact. Assemblies such as `opengrid_papierkorb` (the OpenGrid workflow formerly known as `opengrid_2`) go a step further: every unique panel geometry is exported once as a planar STEP, and the final `opengrid2_freecad.step` gets assembled by FreeCAD in seconds by instantiating those panels with the placement matrices embedded in the SCAD. No more 55 MB STL → STEP runs for the full bin, while the sheet-level STEP exports stay untouched.\
 Prefer the old “one giant STEP from the assembled SCAD” behavior? Set `export.step_assembly: scad` and the exporter reverts to the monolithic conversion path. Omitting the key (or leaving it at `panel`) keeps the faster per-panel assembly for any model that exposes tile placements (Papierkorb + OpenGrid). Regardless of backend, `export.step_dedup` can deduplicate identical geometries: the engine exports a temporary `.csg`, hashes it, and stores the canonical STEP file under `cache_dir/<hash>.step`. Later artifacts with the same geometry simply symlink (or hardlink/copy) to that cached STEP instead of re-running OpenSCAD/FreeCAD.
 
 Just need to convert a single `.scad` file? Use the CLI wrapper:
@@ -277,14 +278,14 @@ python3 -m oscadforge.oscadforge \
   oscadforge/config/printer_bambulab_p1s.yaml \
   oscadforge/config/export_papierkorb_step_freecad.yaml
 
-# Papierkorb (OpenGrid 2 backend)
+# Papierkorb (opengrid_papierkorb backend)
 python3 -m oscadforge.oscadforge \
-  oscadforge/config/model_opengrid_2.yaml \
+  oscadforge/config/opengrid_papierkorb.yaml \
   oscadforge/config/printer_bambulab_p1s_opengrid2.yaml
 
 # Papierkorb (OpenGrid Full, kürzeres Layout)
 python3 -m oscadforge.oscadforge \
-  oscadforge/config/model_opengrid-papierkorb.yaml \
+  oscadforge/config/opengrid_papierkorb.yaml \
   oscadforge/config/printer_bambulab_p1s_opengrid2.yaml
 ```
 

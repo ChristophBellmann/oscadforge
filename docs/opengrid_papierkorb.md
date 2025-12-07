@@ -1,4 +1,4 @@
-# Papierkorb (OpenGrid 2) Variant
+# Papierkorb (opengrid_papierkorb) Variant
 
 This variant rebuilds the Papierkorb panels with the official OpenGrid sources so that
 tiles, snaps, and 90° connectors stay compatible with the ecosystem maintained by
@@ -13,17 +13,17 @@ David D., Hands on Katie, and the QuackWorks contributors.
 - **Printables archive:** `in/opengrid_printables/...` keeps the STEP/3MF references that shipped with the
   original Printables release for cross-checking hole placement.
 
-All of the above assets are CC BY-NC-SA; we merely parameterise them through the oscadforge CLI.
+All of the above assets are CC BY-NC-SA; we merely parameterise them through the oscadforge CLI. This backend is implemented in `oscadforge/core/models/opengrid_papierkorb` (previously named `opengrid_2`), and the CLI exposes the same builder under `opengrid_papierkorb` so existing configs keep working.
 
 ## Workflow Summary
 
 1. Run the new model:
    ```bash
    python3 -m oscadforge.oscadforge \
-     oscadforge/config/model_opengrid_2.yaml
+     oscadforge/config/opengrid_papierkorb.yaml
    ```
-   Für die gekürzte OpenGrid-Full-Variante tausche das Modellyaml einfach gegen
-   `oscadforge/config/model_opengrid-papierkorb.yaml` aus. Der Export
+   Für die gekürzte OpenGrid-Full-Variante tausche denselben Config-Stack gegen
+   `oscadforge/config/papierkorb_opengrid.yaml` oder eine Custom-Override-Datei aus. Der Export
    liefert STEP/PNG direkt unter `out/opengrid_papierkorb_freecad/`; wenn du nur
    SCAD/PNG brauchst, setze `export.step: false` (z. B. via Inline-Override) und
    starte denselben Befehl erneut.
@@ -43,7 +43,7 @@ All of the above assets are CC BY-NC-SA; we merely parameterise them through the
 
 ```yaml
 model:
-  name: opengrid_2
+  name: opengrid_papierkorb
   params:
     bin:
       length_mm: 514.0          # original request

@@ -5,7 +5,7 @@ meta:
     zurück, um Montagekollisionen zu vermeiden.
 
 model:
-  name: opengrid_2
+  name: opengrid_papierkorb
   params:
     #    enable_tiles: true
     #   enable_opengrid: true
@@ -30,21 +30,17 @@ model:
       generate_connectors: false
   layout:
     mode: both
-
-   # mode: assembled
-   # bed_mm:
-   # - 200.0
-   # - 200.0
-#   bed_mm: [256.0, 256.0]
-#    spacing_mm: 6.0
+    # Uncomment to tweak the flattened layout:
+    # bed_mm:
+    #   - 200.0
+    #   - 200.0
     # spacing_mm: 6.0
-
-  # beams:
-  #   segments:
-   #    Beam_Bottom: true
-  #     Beam_Left: true
-   #    Beam_Top: true
-   #    Beam_Right: true
+    # beams:
+    #   segments:
+    #     Beam_Bottom: true
+    #     Beam_Left: true
+    #     Beam_Top: true
+    #     Beam_Right: true
 
 export:
   output_dir: ./out/opengrid_papier
@@ -63,4 +59,3 @@ export:
 
 printer:
   name: ultimaker2 #bambulab_p1s_opengrid2
-
