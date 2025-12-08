@@ -294,11 +294,15 @@ def _board_call(cells_u: int, cells_v: int, thickness: float, board: BoardOption
         f'Chamfers="{board.chamfers}", '
         f"Connector_Holes={bool_val(board.connector_holes)}"
     )
+    suffix = "anchor=CENTER, spin=0, orient=UP"
     if board.variant.strip().lower() == "lite":
-        return f"openGridLite({base_args}, Add_Adhesive_Base={bool_val(board.adhesive_base)}, anchor=CENTER);"
+        return (
+            f"openGridLite({base_args}, "
+            f"Add_Adhesive_Base={bool_val(board.adhesive_base)}, {suffix});"
+        )
     if board.variant.strip().lower() == "heavy":
-        return f"openGridHeavy({base_args}, anchor=CENTER);"
-    return f"openGrid({base_args}, Tile_Thickness={thickness:.4f}, anchor=CENTER);"
+        return f"openGridHeavy({base_args}, {suffix});"
+    return f"openGrid({base_args}, Tile_Thickness={thickness:.4f}, {suffix});"
 
 
 def _placement_block(
