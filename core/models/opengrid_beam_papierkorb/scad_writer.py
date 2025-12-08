@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from enum import Enum
 import colorsys
 import re
-from typing import Iterable, Mapping, Sequence
+from typing import Iterable, Mapping, Sequence, Set
 
 from ..papierkorb.layout import PanelPlacement
 from ..papierkorb.panels import AxisDirection, Panel, PanelFeature, PanelKind
@@ -12,6 +12,8 @@ from .connectors import ConnectorPlan
 from .panels import OpenGridPanelSet
 from .params import BoardOptions, ConnectorOptions
 
+
+EPS = 1.0e-6
 
 PALETTE = [
     (0.88, 0.40, 0.36),
@@ -49,6 +51,7 @@ class BeamCallConfig:
     enable_beam_sides: bool = True
     enable_chamfers: bool = True
     enable_joints: bool = True
+    side_overrides: Mapping[str, bool] | None = None
 
 
 def build_scad_for_artifact(
@@ -132,9 +135,10 @@ def _build_header(includes: IncludePaths, board: BoardOptions) -> str:
 def _panel_modules(panel_set: OpenGridPanelSet, board: BoardOptions) -> str:
     modules = []
     central_ids = _central_floor_panel_ids(panel_set)
+    side_contacts = _build_side_contacts(panel_set.panels)
     for panel in panel_set.panels:
         modules.append(_panel_module(panel, board))
-        config = _beam_config_for_panel(panel, central_ids)
+        config = _beam_config_for_panel(panel, central_ids, side_contacts)
         modules.append(_beam_module(panel, board, config))
     return "\n".join(modules)
 
@@ -165,7 +169,10 @@ def _beam_panel_id(panel_id: str) -> str:
 
 def _beam_call(cells_u: int, cells_v: int, thickness: float, board: BoardOptions, config: BeamCallConfig) -> str:
     bool_val = lambda val: "true" if val else "false"
-    sides_val = bool_val(config.enable_beam_sides)
+    bottom_val = bool_val(_side_flag(config, "bottom"))
+    left_val = bool_val(_side_flag(config, "left"))
+    top_val = bool_val(_side_flag(config, "top"))
+    right_val = bool_val(_side_flag(config, "right"))
     chamfer_val = bool_val(config.enable_chamfers)
     joint_val = bool_val(config.enable_joints)
     lines = [
@@ -174,10 +181,10 @@ def _beam_call(cells_u: int, cells_v: int, thickness: float, board: BoardOptions
         f"    Board_Height            = {cells_v},",
         "",
         "    // Beam-Sides",
-        f"    Beam_Bottom             = {sides_val},",
-        f"    Beam_Left               = {sides_val},",
-        f"    Beam_Top                = {sides_val},",
-        f"    Beam_Right              = {sides_val},",
+        f"    Beam_Bottom             = {bottom_val},",
+        f"    Beam_Left               = {left_val},",
+        f"    Beam_Top                = {top_val},",
+        f"    Beam_Right              = {right_val},",
         "",
         "",
         "    // Beam Connector Options",
@@ -235,6 +242,13 @@ def _beam_call(cells_u: int, cells_v: int, thickness: float, board: BoardOptions
     return "\n".join(lines)
 
 
+def _side_flag(config: BeamCallConfig, side: str) -> bool:
+    overrides = config.side_overrides or {}
+    if side in overrides:
+        return overrides[side]
+    return config.enable_beam_sides
+
+
 def _build_panel_color_modules(panel_set: OpenGridPanelSet) -> tuple[str, dict[str, str]]:
     panels = sorted(panel_set.panels, key=lambda panel: panel.panel_id)
     if not panels:
@@ -269,10 +283,15 @@ def _rainbow_color(index: int, total: int) -> tuple[float, float, float]:
     return r, g, b
 
 
-def _beam_config_for_panel(panel: Panel, central_ids: set[str]) -> BeamCallConfig:
+def _beam_config_for_panel(
+    panel: Panel,
+    central_ids: set[str],
+    side_contacts: Mapping[str, Set[str]],
+) -> BeamCallConfig:
     if panel.panel_id in central_ids:
         return BeamCallConfig(enable_beam_sides=False, enable_chamfers=False, enable_joints=False)
-    return BeamCallConfig()
+    overrides = {side: False for side in side_contacts.get(panel.panel_id, set())}
+    return BeamCallConfig(side_overrides=overrides or None)
 
 
 def _central_floor_panel_ids(panel_set: OpenGridPanelSet) -> set[str]:
@@ -368,6 +387,60 @@ def _panel_colour(panel_id: str) -> str:
     seed = sum(panel_id.encode("utf-8"))
     r, g, b = PALETTE[seed % len(PALETTE)]
     return f"color([{r:.3f}, {g:.3f}, {b:.3f}])"
+
+
+def _build_side_contacts(panels: Sequence[Panel]) -> dict[str, Set[str]]:
+    contacts: dict[str, Set[str]] = {}
+    for panel in panels:
+        contacts[panel.panel_id] = _panel_side_neighbors(panel, panels)
+    return contacts
+
+
+def _panel_side_neighbors(panel: Panel, panels: Sequence[Panel]) -> Set[str]:
+    sides: Set[str] = set()
+    for other in panels:
+        if other is panel:
+            continue
+        for side_name, axis_lab, direction in _side_specs(panel.axes):
+            if _touches_on_axis(panel, other, axis_lab, direction):
+                sides.add(side_name)
+    return sides
+
+
+def _side_specs(axes: PanelAxes) -> list[tuple[str, str, int]]:
+    return [
+        ("right", axes.u.axis, axes.u.sign),
+        ("left", axes.u.axis, -axes.u.sign),
+        ("top", axes.v.axis, axes.v.sign),
+        ("bottom", axes.v.axis, -axes.v.sign),
+    ]
+
+
+def _touches_on_axis(panel: Panel, other: Panel, axis: str, direction: int) -> bool:
+    panel_min, panel_max = _axis_range(panel.bounds, axis)
+    other_min, other_max = _axis_range(other.bounds, axis)
+    boundary = panel_max if direction > 0 else panel_min
+    target = other_min if direction > 0 else other_max
+    if abs(boundary - target) > EPS:
+        return False
+    for orth in _AXIS_OTHER[axis]:
+        a_min, a_max = _axis_range(panel.bounds, orth)
+        b_min, b_max = _axis_range(other.bounds, orth)
+        if not _intervals_overlap(a_min, a_max, b_min, b_max):
+            return False
+    return True
+
+
+_AXIS_OTHER = {"x": ("y", "z"), "y": ("x", "z"), "z": ("x", "y")}
+
+
+def _axis_range(bounds: tuple[float, float, float, float, float, float], axis: str) -> tuple[float, float]:
+    idx = {"x": 0, "y": 2, "z": 4}[axis]
+    return bounds[idx], bounds[idx + 1]
+
+
+def _intervals_overlap(a_min: float, a_max: float, b_min: float, b_max: float) -> bool:
+    return min(a_max, b_max) - max(a_min, b_min) > EPS
 
 
 def _connectors_body(
