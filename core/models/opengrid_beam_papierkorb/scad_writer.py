@@ -15,6 +15,12 @@ from .params import BoardOptions, ConnectorOptions
 
 EPS = 1.0e-6
 VALID_SIDES = ("bottom", "left", "top", "right")
+PERPENDICULAR_SIDES: dict[str, tuple[str, ...]] = {
+    "bottom": ("left", "right"),
+    "top": ("left", "right"),
+    "left": ("top", "bottom"),
+    "right": ("top", "bottom"),
+}
 
 PALETTE = [
     (0.88, 0.40, 0.36),
@@ -321,17 +327,30 @@ def _beam_config_for_panel(
     exposed = [side for side in VALID_SIDES if side not in contacts]
     is_stacked = panel.panel_id in stacked
 
-    joint_overrides_map: dict[str, bool] = {side: False for side in contacts}
+    adjacency_disabled: Set[str] = set(contacts)
+    for side in contacts:
+        adjacency_disabled.update(PERPENDICULAR_SIDES.get(side, ()))
+    adjacency_disabled &= set(VALID_SIDES)
+    joint_overrides_map: dict[str, bool] = {side: False for side in VALID_SIDES}
     enable_joints = False
     if exposed and not is_stacked:
-        enable_joints = True
+        enabled_sides: list[str] = []
         for side in exposed:
+            if side in adjacency_disabled:
+                continue
+            enabled_sides.append(side)
             joint_overrides_map[side] = True
-    joint_overrides = joint_overrides_map or None
+        enable_joints = bool(enabled_sides)
+    joint_overrides = joint_overrides_map if enable_joints else None
 
     enable_chamfers = False
     chamfer_overrides: Mapping[str, bool] | None = None
-    if panel.kind in (PanelKind.WALL_POS_X, PanelKind.WALL_NEG_X) and "top" in exposed and not is_stacked:
+    if (
+        panel.kind in (PanelKind.WALL_POS_X, PanelKind.WALL_NEG_X)
+        and "top" in exposed
+        and "top" not in adjacency_disabled
+        and not is_stacked
+    ):
         enable_chamfers = True
         overrides = {side: False for side in VALID_SIDES}
         overrides["top"] = True
