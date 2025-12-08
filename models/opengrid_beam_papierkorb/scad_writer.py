@@ -52,6 +52,8 @@ class BeamCallConfig:
     enable_chamfers: bool = True
     enable_joints: bool = True
     side_overrides: Mapping[str, bool] | None = None
+    joint_overrides: Mapping[str, bool] | None = None
+    chamfer_overrides: Mapping[str, bool] | None = None
 
 
 def build_scad_for_artifact(
@@ -174,7 +176,15 @@ def _beam_call(cells_u: int, cells_v: int, thickness: float, board: BoardOptions
     top_val = bool_val(_side_flag(config, "top"))
     right_val = bool_val(_side_flag(config, "right"))
     chamfer_val = bool_val(config.enable_chamfers)
+    chamfer_bottom = bool_val(_chamfer_flag(config, "bottom"))
+    chamfer_left = bool_val(_chamfer_flag(config, "left"))
+    chamfer_top = bool_val(_chamfer_flag(config, "top"))
+    chamfer_right = bool_val(_chamfer_flag(config, "right"))
     joint_val = bool_val(config.enable_joints)
+    joint_bottom = bool_val(_joint_flag(config, "bottom"))
+    joint_left = bool_val(_joint_flag(config, "left"))
+    joint_top = bool_val(_joint_flag(config, "top"))
+    joint_right = bool_val(_joint_flag(config, "right"))
     lines = [
         "    openGridbeam(",
         f"    Board_Width             = {cells_u},",
@@ -210,28 +220,28 @@ def _beam_call(cells_u: int, cells_v: int, thickness: float, board: BoardOptions
         "",
         "    // Joint Options",
         f"    Joints                  = {joint_val},",
-        f"    Joint_Bottom_l          = {joint_val},",
-        f"    Joint_Bottom_r          = {joint_val},",
-        f"    Joint_Left_l            = {joint_val},",
-        f"    Joint_Left_r            = {joint_val},",
-        f"    Joint_Top_l             = {joint_val},",
-        f"    Joint_Top_r             = {joint_val},",
-        f"    Joint_Right_l           = {joint_val},",
-        f"    Joint_Right_r           = {joint_val},",
+        f"    Joint_Bottom_l          = {joint_bottom},",
+        f"    Joint_Bottom_r          = {joint_bottom},",
+        f"    Joint_Left_l            = {joint_left},",
+        f"    Joint_Left_r            = {joint_left},",
+        f"    Joint_Top_l             = {joint_top},",
+        f"    Joint_Top_r             = {joint_top},",
+        f"    Joint_Right_l           = {joint_right},",
+        f"    Joint_Right_r           = {joint_right},",
         "",
         "    // Attached Option",
         "    Joint_attached          = false,",
         "",
         "    // Chamfer Options",
         f"    Chamfers                = {chamfer_val},",
-        f"    Chamfer_Bottom_l        = {chamfer_val},",
-        f"    Chamfer_Bottom_r        = {chamfer_val},",
-        f"    Chamfer_Left_l          = {chamfer_val},",
-        f"    Chamfer_Left_r          = {chamfer_val},",
-        f"    Chamfer_Top_l           = {chamfer_val},",
-        f"    Chamfer_Top_r           = {chamfer_val},",
-        f"    Chamfer_Right_l         = {chamfer_val},",
-        f"    Chamfer_Right_r         = {chamfer_val},",
+        f"    Chamfer_Bottom_l        = {chamfer_bottom},",
+        f"    Chamfer_Bottom_r        = {chamfer_bottom},",
+        f"    Chamfer_Left_l          = {chamfer_left},",
+        f"    Chamfer_Left_r          = {chamfer_left},",
+        f"    Chamfer_Top_l           = {chamfer_top},",
+        f"    Chamfer_Top_r           = {chamfer_top},",
+        f"    Chamfer_Right_l         = {chamfer_right},",
+        f"    Chamfer_Right_r         = {chamfer_right},",
         "",
         "    // OpenSCAD Transform Parameters",
         "    anchor                  = CENTER,",
@@ -247,6 +257,20 @@ def _side_flag(config: BeamCallConfig, side: str) -> bool:
     if side in overrides:
         return overrides[side]
     return config.enable_beam_sides
+
+
+def _joint_flag(config: BeamCallConfig, side: str) -> bool:
+    overrides = config.joint_overrides or {}
+    if side in overrides:
+        return overrides[side]
+    return config.enable_joints
+
+
+def _chamfer_flag(config: BeamCallConfig, side: str) -> bool:
+    overrides = config.chamfer_overrides or {}
+    if side in overrides:
+        return overrides[side]
+    return config.enable_chamfers
 
 
 def _build_panel_color_modules(panel_set: OpenGridPanelSet) -> tuple[str, dict[str, str]]:
@@ -291,7 +315,7 @@ def _beam_config_for_panel(
     if panel.panel_id in central_ids:
         return BeamCallConfig(enable_beam_sides=False, enable_chamfers=False, enable_joints=False)
     overrides = {side: False for side in side_contacts.get(panel.panel_id, set())}
-    return BeamCallConfig(side_overrides=overrides or None)
+    return BeamCallConfig(side_overrides=overrides or None, joint_overrides=overrides or None)
 
 
 def _central_floor_panel_ids(panel_set: OpenGridPanelSet) -> set[str]:
