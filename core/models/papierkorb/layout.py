@@ -30,6 +30,7 @@ class FlatSheet:
     width: float
     height: float
     placements: List[PanelPlacement]
+    module_label: str | None = None
 
 
 @dataclass
@@ -58,7 +59,16 @@ def _build_flat_sheets(panels: Sequence[Panel], cfg: LayoutConfig) -> List[FlatS
     def new_sheet() -> None:
         nonlocal cursor_x, cursor_y, row_height, current, sheet_idx
         if current:
-            sheets.append(FlatSheet(name=f"sheet{sheet_idx:02d}", width=width, height=height, placements=current))
+            label = _sheet_module_label(current)
+            sheets.append(
+                FlatSheet(
+                    name=f"sheet{sheet_idx:02d}",
+                    width=width,
+                    height=height,
+                    placements=current,
+                    module_label=label,
+                )
+            )
             sheet_idx += 1
         current = []
         cursor_x = spacing
@@ -88,10 +98,25 @@ def _build_flat_sheets(panels: Sequence[Panel], cfg: LayoutConfig) -> List[FlatS
         cursor_x += panel_w + spacing
         row_height = max(row_height, panel_h)
     if current:
-        sheets.append(FlatSheet(name=f"sheet{sheet_idx:02d}", width=width, height=height, placements=current))
+        label = _sheet_module_label(current)
+        sheets.append(
+            FlatSheet(
+                name=f"sheet{sheet_idx:02d}",
+                width=width,
+                height=height,
+                placements=current,
+                module_label=label,
+            )
+        )
     return sheets
 
 
 def _flat_axes_for(kind: PanelKind) -> PanelAxes:
     # All panels lie flat on the bed; u->X, v->Y, w->Z.
     return PanelAxes(AxisDirection("x"), AxisDirection("y"), AxisDirection("z"))
+
+
+def _sheet_module_label(placements: List[PanelPlacement]) -> str | None:
+    if not placements:
+        return None
+    return placements[0].panel.panel_id

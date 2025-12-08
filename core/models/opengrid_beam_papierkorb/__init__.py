@@ -28,6 +28,7 @@ from .scad_writer import (
     build_scad_for_artifact,
     build_scad_for_panel,
     placement_matrix,
+    _beam_panel_id,
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
@@ -98,7 +99,7 @@ def build(context: BuildContext) -> EngineResult:
         for panel in panel_set.panels:
             if panel.panel_id in panel_scad_paths:
                 continue
-            panel_scad_path = context.out_dir / f"{panel.panel_id}_panel.scad"
+            panel_scad_path = context.out_dir / f"panel_geom_{panel.panel_id}.scad"
             panel_scad_text = build_scad_for_panel(
                 panel=panel,
                 board=params.board,
@@ -106,7 +107,7 @@ def build(context: BuildContext) -> EngineResult:
             )
             panel_scad_path.write_text(panel_scad_text, encoding="utf-8")
             panel_scad_paths[panel.panel_id] = panel_scad_path
-            panel_step_path = context.out_dir / f"{panel.panel_id}_panel.step"
+            panel_step_path = context.out_dir / f"panel_geom_{panel.panel_id}.step"
             step_tasks.append(
                 StepExportTask(
                     scad_path=panel_scad_path,
@@ -321,7 +322,7 @@ def _build_artifacts(
         artifacts.append(
             LayoutArtifact(
                 label="assembled",
-                basename=basename,
+                basename=_artifact_basename(basename, "assembled"),
                 placements=plan.assembled,
                 preview_prisms=_assembled_preview_prisms(panel_set),
                 beam_mode=BeamPlacementMode.BOTH,
@@ -330,10 +331,14 @@ def _build_artifacts(
 
     if mode in ("flat", "both"):
         for sheet in plan.flat_sheets:
+            sheet_label = sheet.module_label or sheet.name
+            sheet_beam_label = (
+                _beam_panel_id(sheet_label) if sheet.module_label else f"{sheet_label}_beam"
+            )
             artifacts.append(
                 LayoutArtifact(
                     label=sheet.name,
-                    basename=f"{basename}_{sheet.name}",
+                    basename=_artifact_basename(basename, sheet_label),
                     placements=sheet.placements,
                     preview_prisms=_sheet_preview_prisms(sheet, panel_set),
                 )
@@ -341,35 +346,34 @@ def _build_artifacts(
             artifacts.append(
                 LayoutArtifact(
                     label=f"{sheet.name}_beam",
-                    basename=f"{basename}_{sheet.name}_beam",
+                    basename=_artifact_basename(basename, sheet_beam_label),
                     placements=sheet.placements,
                     preview_prisms=_sheet_preview_prisms(sheet, panel_set),
                     beam_mode=BeamPlacementMode.BEAM_ONLY,
                 )
             )
         if plan.flat_sheets or layout_cfg.sheet_combined_mode == "assembled":
-            combined_placements: list[PanelPlacement] = []
             combined_placements = _combined_placements(plan, layout_cfg.sheet_combined_mode)
             preview = _preview_for_mode(plan, panel_set, layout_cfg.sheet_combined_mode)
             if layout_cfg.combined_sheets:
                 artifacts.append(
                     LayoutArtifact(
                         label="sheet",
-                        basename=f"{basename}_sheet",
+                        basename=_artifact_basename(basename, "sheet"),
                         placements=combined_placements,
                         preview_prisms=preview,
                         beam_mode=BeamPlacementMode.PANEL_ONLY,
                     )
                 )
             if layout_cfg.combined_beams:
-                beam_preview = _preview_for_mode(plan, panel_set, layout_cfg.beam_combined_mode)
                 beam_placements = _combined_placements(plan, layout_cfg.beam_combined_mode)
+                beam_preview = _preview_for_mode(plan, panel_set, layout_cfg.beam_combined_mode)
                 artifacts.append(
                     LayoutArtifact(
                         label="beam",
-                        basename=f"{basename}_beam",
-                        placements=combined_placements,
-                        preview_prisms=preview,
+                        basename=_artifact_basename(basename, "beam"),
+                        placements=beam_placements,
+                        preview_prisms=beam_preview,
                         beam_mode=BeamPlacementMode.BEAM_ONLY,
                     )
                 )
@@ -378,13 +382,19 @@ def _build_artifacts(
         artifacts.append(
             LayoutArtifact(
                 label="connectors",
-                basename=f"{basename}_connectors",
+                basename=_artifact_basename(basename, "connectors"),
                 placements=[],
                 preview_prisms=_connector_preview(panel_set),
                 is_connector_sheet=True,
             )
         )
     return artifacts
+
+
+def _artifact_basename(base: str, label: str) -> str:
+    if label == "assembled":
+        return base
+    return f"{base}_{label}"
 
 
 def _assembled_preview_prisms(panel_set: OpenGridPanelSet) -> List[RectPrismSpec]:

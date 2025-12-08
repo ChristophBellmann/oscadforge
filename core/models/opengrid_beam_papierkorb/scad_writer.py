@@ -289,7 +289,9 @@ def _central_floor_panel_ids(panel_set: OpenGridPanelSet) -> set[str]:
             (ix, iy - 1),
             (ix, iy + 1),
         ]
-        if all(nb in lookup for nb in neighbors):
+        has_horizontal = (ix - 1, iy) in lookup and (ix + 1, iy) in lookup
+        has_vertical = (ix, iy - 1) in lookup and (ix, iy + 1) in lookup
+        if all(nb in lookup for nb in neighbors) or has_horizontal or has_vertical:
             central.add(panel_id)
     return central
 
