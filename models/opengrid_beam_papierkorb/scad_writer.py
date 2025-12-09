@@ -14,6 +14,13 @@ from .params import BoardOptions, ConnectorOptions
 
 
 EPS = 1.0e-6
+VALID_SIDES = ("bottom", "left", "top", "right")
+PERPENDICULAR_SIDES: dict[str, tuple[str, ...]] = {
+    "bottom": ("left", "right"),
+    "top": ("left", "right"),
+    "left": ("top", "bottom"),
+    "right": ("top", "bottom"),
+}
 
 PALETTE = [
     (0.88, 0.40, 0.36),
@@ -137,10 +144,10 @@ def _build_header(includes: IncludePaths, board: BoardOptions) -> str:
 def _panel_modules(panel_set: OpenGridPanelSet, board: BoardOptions) -> str:
     modules = []
     central_ids = _central_floor_panel_ids(panel_set)
-    side_contacts = _build_side_contacts(panel_set.panels)
+    side_contacts, stacked = _build_side_contacts(panel_set.panels)
     for panel in panel_set.panels:
         modules.append(_panel_module(panel, board))
-        config = _beam_config_for_panel(panel, central_ids, side_contacts)
+        config = _beam_config_for_panel(panel, central_ids, side_contacts, stacked)
         modules.append(_beam_module(panel, board, config))
     return "\n".join(modules)
 
@@ -311,11 +318,51 @@ def _beam_config_for_panel(
     panel: Panel,
     central_ids: set[str],
     side_contacts: Mapping[str, Set[str]],
+    stacked: Set[str],
 ) -> BeamCallConfig:
     if panel.panel_id in central_ids:
         return BeamCallConfig(enable_beam_sides=False, enable_chamfers=False, enable_joints=False)
-    overrides = {side: False for side in side_contacts.get(panel.panel_id, set())}
-    return BeamCallConfig(side_overrides=overrides or None, joint_overrides=overrides or None)
+    contacts = side_contacts.get(panel.panel_id, set())
+    side_overrides = {side: False for side in contacts}
+    exposed = [side for side in VALID_SIDES if side not in contacts]
+    is_stacked = panel.panel_id in stacked
+
+    adjacency_disabled: Set[str] = set(contacts)
+    for side in contacts:
+        adjacency_disabled.update(PERPENDICULAR_SIDES.get(side, ()))
+    adjacency_disabled &= set(VALID_SIDES)
+    joint_overrides_map: dict[str, bool] = {side: False for side in VALID_SIDES}
+    enable_joints = False
+    if exposed and not is_stacked:
+        enabled_sides: list[str] = []
+        for side in exposed:
+            if side in adjacency_disabled:
+                continue
+            enabled_sides.append(side)
+            joint_overrides_map[side] = True
+        enable_joints = bool(enabled_sides)
+    joint_overrides = joint_overrides_map if enable_joints else None
+
+    enable_chamfers = False
+    chamfer_overrides: Mapping[str, bool] | None = None
+    if (
+        panel.kind in (PanelKind.WALL_POS_X, PanelKind.WALL_NEG_X)
+        and "top" in exposed
+        and "top" not in adjacency_disabled
+        and not is_stacked
+    ):
+        enable_chamfers = True
+        overrides = {side: False for side in VALID_SIDES}
+        overrides["top"] = True
+        chamfer_overrides = overrides
+
+    return BeamCallConfig(
+        side_overrides=side_overrides or None,
+        joint_overrides=joint_overrides,
+        chamfer_overrides=chamfer_overrides,
+        enable_joints=enable_joints,
+        enable_chamfers=enable_chamfers,
+    )
 
 
 def _central_floor_panel_ids(panel_set: OpenGridPanelSet) -> set[str]:
@@ -374,7 +421,7 @@ def _placement_block(
         if beam_mode in (BeamPlacementMode.BEAM_ONLY, BeamPlacementMode.BOTH):
             module_names.append(_beam_panel_id(placement.panel.panel_id))
         for module_id in module_names:
-            col_module = color_map.get(placement.panel.panel_id) if color_map else None
+            col_module = color_map.get(placement.panel.panel_id)
             if col_module:
                 statements.append(
                     f"    {col_module}() {{\n"
@@ -413,11 +460,14 @@ def _panel_colour(panel_id: str) -> str:
     return f"color([{r:.3f}, {g:.3f}, {b:.3f}])"
 
 
-def _build_side_contacts(panels: Sequence[Panel]) -> dict[str, Set[str]]:
+def _build_side_contacts(panels: Sequence[Panel]) -> tuple[dict[str, Set[str]], Set[str]]:
     contacts: dict[str, Set[str]] = {}
+    stacked: Set[str] = set()
     for panel in panels:
         contacts[panel.panel_id] = _panel_side_neighbors(panel, panels)
-    return contacts
+        if _has_vertical_contact(panel, panels):
+            stacked.add(panel.panel_id)
+    return contacts, stacked
 
 
 def _panel_side_neighbors(panel: Panel, panels: Sequence[Panel]) -> Set[str]:
@@ -425,10 +475,22 @@ def _panel_side_neighbors(panel: Panel, panels: Sequence[Panel]) -> Set[str]:
     for other in panels:
         if other is panel:
             continue
+        if panel.axes.w.axis != other.axes.w.axis:
+            continue
         for side_name, axis_lab, direction in _side_specs(panel.axes):
             if _touches_on_axis(panel, other, axis_lab, direction):
                 sides.add(side_name)
     return sides
+
+
+def _has_vertical_contact(panel: Panel, panels: Sequence[Panel]) -> bool:
+    for other in panels:
+        if other is panel:
+            continue
+        if _touches_on_axis(panel, other, panel.axes.w.axis, panel.axes.w.sign):
+            if panel.kind != other.kind:
+                return True
+    return False
 
 
 def _side_specs(axes: PanelAxes) -> list[tuple[str, str, int]]:
@@ -464,9 +526,7 @@ def _axis_range(bounds: tuple[float, float, float, float, float, float], axis: s
 
 
 def _intervals_overlap(a_min: float, a_max: float, b_min: float, b_max: float) -> bool:
-    return min(a_max, b_max) - max(a_min, b_min) > EPS
-
-
+    return min(a_max, b_max) - max(a_min, b_min) >= -EPS
 
 
 def _connectors_body(

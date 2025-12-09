@@ -475,6 +475,8 @@ def _panel_side_neighbors(panel: Panel, panels: Sequence[Panel]) -> Set[str]:
     for other in panels:
         if other is panel:
             continue
+        if panel.axes.w.axis != other.axes.w.axis:
+            continue
         for side_name, axis_lab, direction in _side_specs(panel.axes):
             if _touches_on_axis(panel, other, axis_lab, direction):
                 sides.add(side_name)
@@ -524,7 +526,7 @@ def _axis_range(bounds: tuple[float, float, float, float, float, float], axis: s
 
 
 def _intervals_overlap(a_min: float, a_max: float, b_min: float, b_max: float) -> bool:
-    return min(a_max, b_max) - max(a_min, b_min) > EPS
+    return min(a_max, b_max) - max(a_min, b_min) >= -EPS
 
 
 def _connectors_body(

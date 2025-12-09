@@ -1,3 +1,5 @@
+#####codex resume 019afa6e-729e-7a23-b95b-6b2a44cda07
+
 # OpenSCADForge
 
 Pandoc-style CAD pipeline for parameterised OpenSCAD projects.\
